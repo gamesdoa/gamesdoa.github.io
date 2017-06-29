@@ -1,0 +1,1010 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="innodb,redo,log,redo log,LSN,检查点" />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="gamesdoa随记" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="mysql的InnoDB存储引擎通过redo log实现事务的持久化，那么redo log的实现原理是怎么样的呢？LSN的作用是什么，为什么LSN会贯穿整个redo log的实现中？检查点又是来做什么的？redo log的架构是怎么样的？为什么说redo log不需要使用doublewrite技术？为了提供数据库性能，redo log做了哪些优化？且听小生慢慢道来。">
+<meta name="keywords" content="innodb,redo,log,redo log,LSN,检查点">
+<meta property="og:type" content="article">
+<meta property="og:title" content="mysql InnoDB redo log 分析">
+<meta property="og:url" content="http://gamesdoa.com/mysql-innodb-redo-log.html">
+<meta property="og:site_name" content="gamesdoa随记">
+<meta property="og:description" content="mysql的InnoDB存储引擎通过redo log实现事务的持久化，那么redo log的实现原理是怎么样的呢？LSN的作用是什么，为什么LSN会贯穿整个redo log的实现中？检查点又是来做什么的？redo log的架构是怎么样的？为什么说redo log不需要使用doublewrite技术？为了提供数据库性能，redo log做了哪些优化？且听小生慢慢道来。">
+<meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/mysql/redo-log/redo%E7%89%A9%E7%90%86%E6%9E%B6%E6%9E%84.jpg">
+<meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/mysql/redo-log/InnoDB%E4%B8%AD%E5%90%84%E7%A7%8DLSN.jpg">
+<meta property="og:updated_time" content="2017-06-28T04:26:02.487Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="mysql InnoDB redo log 分析">
+<meta name="twitter:description" content="mysql的InnoDB存储引擎通过redo log实现事务的持久化，那么redo log的实现原理是怎么样的呢？LSN的作用是什么，为什么LSN会贯穿整个redo log的实现中？检查点又是来做什么的？redo log的架构是怎么样的？为什么说redo log不需要使用doublewrite技术？为了提供数据库性能，redo log做了哪些优化？且听小生慢慢道来。">
+<meta name="twitter:image" content="https://github.com/gamesdoa/img0/raw/master/mysql/redo-log/redo%E7%89%A9%E7%90%86%E6%9E%B6%E6%9E%84.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'gamesdoa'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://gamesdoa.com/mysql-innodb-redo-log.html"/>
+
+
+
+
+
+  <title>mysql InnoDB redo log 分析 | gamesdoa随记</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?8d7f22e2a4a684f7bae123e14b5cdb35";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  <div style="display: none;">
+    <script src="//s95.cnzz.com/z_stat.php?id=1262464870&web_id=1262464870" language="JavaScript"></script>
+  </div>
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">gamesdoa随记</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">边走边记</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://gamesdoa.com/mysql-innodb-redo-log.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gamesdoa">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="gamesdoa随记">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">mysql InnoDB redo log 分析</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-05-05T00:00:00+08:00">
+                2017-05-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/mysql/" itemprop="url" rel="index">
+                    <span itemprop="name">mysql</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a class="cloud-tie-join-count" href="/mysql-innodb-redo-log.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count join-count" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/mysql-innodb-redo-log.html" class="leancloud_visitors" data-flag-title="mysql InnoDB redo log 分析">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数 </span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+              <div class="post-description">
+                  mysql的InnoDB存储引擎通过redo log实现事务的持久化，那么redo log的实现原理是怎么样的呢？LSN的作用是什么，为什么LSN会贯穿整个redo log的实现中？检查点又是来做什么的？redo log的架构是怎么样的？为什么说redo log不需要使用doublewrite技术？为了提供数据库性能，redo log做了哪些优化？且听小生慢慢道来。
+              </div>
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="redo-log简介"><a href="#redo-log简介" class="headerlink" title="redo log简介"></a>redo log简介</h2><p><strong>重做日志（redo log）</strong> 用来实现事物的持久化，即事务ACID中的D。redo log由两部分组成：</p>
+<ul>
+<li>内存中的redo log buffer 易丢失</li>
+<li>外存中的redo log file 持久的</li>
+</ul>
+<p>InnoDB通过force log at commit机制实现事务的持久化，即当事务commit时，必须先将该事务的所有日志写入到重做日志文件进行持久化，待完成后事务的commit操作才算完成。</p>
+<p>redo log基本上是<strong>顺序写</strong>，并且在数据库运行期间不需要对redo log的文件进行读取操作。</p>
+<p>为了确保每次日志都写入到redo log file，在每次将redo log buffer写入到redo log file后，InnoDB存储引擎都需要调用一次fsync操作，因为redo log先写入到文件系统缓存，为了确保redo log写入到磁盘，必须进行一次fsync操作，这里也一般是数据库系统的瓶颈。事务TPS取决于磁盘性能。</p>
+<blockquote>
+<p>参数innodb_flush_log_at_trx_commit可以设置磁盘刷新策略</p>
+<ul>
+<li>0：事务不强制写入redo log，写入操作仅在master thread中进行完成，而master thread中每一秒进行一次redo log的fsync，因此宕机时有可能丢失最后一秒的数据。</li>
+<li>1：InnoDB默认值，每次事务提交都调用fsync操作，保证事务的完整性。</li>
+<li>2：事务提交时，redo log写入redo log file，仅写入到文件系统的缓存中，不进行fsync操作。数据库宕机，操作系统不宕机数据不丢失，操作系统宕机会丢失未从文件系统缓存刷新到redo log file那部分的数据。</li>
+</ul>
+</blockquote>
+<pre><code>对于插入50W数据的情况下设置不同值对于插入的速度影响如下
+innodb_flush_log_at_trx_commit         执行所用时间
+                0                        13.90s
+                1                        1m53.11s
+                2                        23.37s
+</code></pre><h2 id="物理逻辑日志"><a href="#物理逻辑日志" class="headerlink" title="物理逻辑日志"></a>物理逻辑日志</h2><p>不同的数据库系统针对重做日志有不同的实现方式，一般会有以下几种类型</p>
+<ul>
+<li>物理日志</li>
+<li>逻辑日志</li>
+<li>物理逻辑日志</li>
+</ul>
+<p><strong>物理日志(physical logging)</strong>：又称old value-new value logging，该日志是幂等的，保存的是页中发生变化的字节。<strong>问题</strong>是日志产生的量相对较大，例如对页整理的话，日志大小可能为页的大小</p>
+<p><strong>逻辑日志</strong>：记录的是对于表的操作，因此日志量很小(基本上是只记录操作语句)。<strong>问题</strong>是恢复时可能无法保证数据的一致性(宕机时可能使数据处于未知状态)。</p>
+<p><strong>物理逻辑日志</strong>：设计思路是：physical-to-a-page，logical-within-a-page。也就是对于也是记录物理日志，对于页内的操作是记录逻辑日志，这能很好地结合物理日志和逻辑日志的优点。例如对于页整理，如果使用物理日志形式，日志量需要一个页大小，而使用物理逻辑日志形式，只需要记录页的编号以及日志的类型</p>
+<h2 id="LSN-log-sequence-number-日志序列号"><a href="#LSN-log-sequence-number-日志序列号" class="headerlink" title="LSN : log sequence number(日志序列号)"></a>LSN : log sequence number(日志序列号)</h2><p>LSN特点是单调递增，代表每个重做日志的编号，这就意味着每一个日志都有一个LSN与之一一对应。<br>存在于多个对象中，表示的含义各不相同</p>
+<ul>
+<li>操作日志</li>
+<li>页</li>
+<li>检查点</li>
+</ul>
+<p><strong>操作日志</strong>：LSN是事务写入操作日志的字节总量，LSN记录的是操作日志的增量，单位字节。例如当前LSN1000，事务T1产生100字节的操作日志，那么LSN变成1100，事务T2产生200字节的操作日志，那么当前LSN为1300。<strong>InnoDB存储引擎</strong>首先是将重做日志写入到一个缓存中，因此存在已经写入到重做日志缓冲和重做日志文件的两部分LSN信息。</p>
+<p><strong>页</strong>：页的头信息中FIL_PAGE_LSN存储的是页的LSN，表示该页最后刷新的LSN大小，由于操作日志记录的是每个页的日志，因此页中的LSN可以用来判断该页是否需要进行恢复操作。例如：页P1的LSN为1000，数据库启动时InnoDB检测到写入重做日志中该页的LSN为1300并且事务已经提交，那么数据库需要进行恢复操作，需要将重做日志应用到P1中。如果重做日志的LSN小于P1页的LSN，则不需要进行重做操作。</p>
+<p><strong>检查点</strong>：表示页已经刷新到磁盘的LSN位置，当数据库重启时，仅需要从检查点开始进行恢复操作。若检查点的LSN与操作日志的LSN相同，表示所有页都已经刷新到磁盘，不需要进行恢复操作。这样的好处是减少数据库重启时间。</p>
+<pre><code>mysql&gt; SHOW INNODB STATUS\G;
+......
+---
+LOG
+---
+Log sequence number 0 11347131
+Log flushed up to   0 11338553
+Log checkpoint at   0 11056147
+......
+</code></pre><blockquote>
+<p>Log sequence number表示重做日志缓冲中已经写入的LSN值，Log flushed up to表示已经刷新到重做日志文件的LSN值，由于重做日志缓冲在master thread中会每秒定期地进行刷新到磁盘的操作，因此两者之间的差距很小。</p>
+<p>Log checkpoint at表示最新一次页刷新到磁盘时的LSN。该值与前两个值差距可能比较大。具体原因见下一部分的检查点相关</p>
+</blockquote>
+<h2 id="检查点"><a href="#检查点" class="headerlink" title="检查点"></a>检查点</h2><p>InnoDB存储引擎采用write ahead log(WAL)策略实现事务的持久性，即当事务提交时，首先将重做日志写入到文件，实际数据页刷新到磁盘的操作由检查点（checkpoint）负责。也就是说事务的日志在事务提交时确定写入到外存，但是缓冲池(buffer pool)中的页并没有刷新到磁盘，<strong>这是因为事务提交时仅仅是把事务操作所涉及页的重做日志都写入到磁盘(顺序写)</strong>。页的刷新时异步的，也就是检查点技术。</p>
+<p><strong>检查点的操作</strong>就是将缓冲池中的页刷新到磁盘,最终达到外存和内存中的页的数据一致。</p>
+<p><strong>检查点的作用</strong>缩短当数据库发生宕机时数据库恢复所需要的时间。</p>
+<p><strong>宕机后的恢复</strong>：检查点的值是根据LSN记录的，当检查点的值是1000，重做日志刷新到的位置为1300，那么1000之后的重做日志需要回放(replay)。也就是说因为有检查点操作回放重做日志只需要进行1000到1300之间的数据，如果没有进行过checkpoint那么需要回放所有的重做日志。</p>
+<p>InnoDB中存在两种检查点：</p>
+<ul>
+<li>sharp checkpoint</li>
+<li>fuzzy checkpoint</li>
+</ul>
+<blockquote>
+<p>sharp checkpoint将缓冲池中修改的页(脏页)，全部刷新到磁盘。<strong>优点</strong>是可以大大缩短宕机恢复所需要的时间。<strong>缺点</strong>是在进行sharp checkpoint时不能进行其他的DML操作，生产环境不可接受。</p>
+<p>fuzzy checkpoint将缓冲池中修改的页(脏页)，慢慢的刷新回磁盘。<strong>优点</strong>大大提高数据库的可用性，刷新时也可以进行DML操作。<strong>注意项</strong>脏页需要根据第一次被修改时的LSN进行排序，然后将最老的页先刷回到磁盘，也就使得页的刷新和日志的LSN顺序是一样的，从而保证恢复操作的准确性。</p>
+</blockquote>
+<h2 id="归档日志与恢复"><a href="#归档日志与恢复" class="headerlink" title="归档日志与恢复"></a>归档日志与恢复</h2><ul>
+<li><p><strong>归档日志</strong>：InnoDB存储引擎中，重做日志文件的大小是固定的，如果写入的日志大于重做日志文件的固定大小，就需要循环使用重做日志文件，这种方式称为round robin(轮循)。也就意味着之前写入的日志可能被新的日志覆盖，为了保留之前的重做日志，InnoDB存储引擎设计了归档日志，与重做日志文件的内容是完全相同的。</p>
+</li>
+<li><p><strong>恢复</strong>：InnoDB存储引擎在启动时不管上次数据库是否正常关闭，都会尝试进行恢复操作。重做日志记录的是物理逻辑日志因此恢复起来速度很快，并且InnoDB存储引擎也对恢复进行了优化，采用顺序读取并行应用重做日志方式加速恢复。而且因为有checkpoint技术存在，恢复过程中仅需要恢复checkpoint记录的LSN之后的日志部分，再次加速了恢复过程。</p>
+</li>
+</ul>
+<h2 id="重做日志物理架构"><a href="#重做日志物理架构" class="headerlink" title="重做日志物理架构"></a>重做日志物理架构</h2><p>InnoDB存储引擎中的重做日志由以下几个部分组成</p>
+<ul>
+<li>重做日志缓存(redo log buffer)</li>
+<li>重做日志组(redo log group)</li>
+<li>每个重做日志组包含多个重做日志文件(redo log file)</li>
+<li>归档重做日志文件</li>
+</ul>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/mysql/redo-log/redo%E7%89%A9%E7%90%86%E6%9E%B6%E6%9E%84.jpg" alt="重做日志存储结构"></p>
+<p>其中重做日志组是完全相同的镜像关系，目的是提高数据库的可用性，当一组中的介质损坏时。InnoDB存储引擎依然能够提供服务，虽然mysql的InnoDB这样设计了重做日志组，但是从源码层面看，其实并不能把重做日志组设置为1以外的值，否则会抛出InnoDB： or a wrong number of mirrored log group导致数据库不能启动，这是因为考虑到InnoDB存储引擎的性能，并且数据本身可以通过RAID保证数据的可靠性造成的。</p>
+<p>重做日志文件是round robin(轮循)的多个同样大小的文件，默认前缀ib_logfile，总文件大小不能超过4GB。</p>
+<p>归档日志是针对重做日志的备份归档，默认前缀ib_arch<em>log</em>，并且归档只对重做日志组1中的文件进行归档。</p>
+<h2 id="重做日志块"><a href="#重做日志块" class="headerlink" title="重做日志块"></a>重做日志块</h2><p>在InnoDB存储引擎中重做日志都是以512字节进行存储的，即重做日志缓存，重做日志文件，归档重做日志都是以块的方式保存的。但是如果一个页中产生的重做日志数量大于512字节，那么就需要分割为多个重做日志块进行存储</p>
+<p><strong>重做日志块的大小跟磁盘扇区大小一样</strong>，都是512字节，因此重做日志的写入可以保证原子性，不需要doublewrite技术。</p>
+<p><strong>从数据结构看</strong>：重做日志块除了日志本身，还有日志块头和日志块尾两部分，日志头一共占12个字节，日志尾占用8个字节，因此每个日志块其实只能存储492字节的日志。</p>
+<h2 id="重做日志组与重做日志文件"><a href="#重做日志组与重做日志文件" class="headerlink" title="重做日志组与重做日志文件"></a>重做日志组与重做日志文件</h2><p>InnoDB存储引擎的重做日志组在源码层面被限定成了一个，因此这里不过多的关注。</p>
+<p>重做日志组由多个重做日志文件组成，而重做日志文件存储的是log buffer中保存的log block，因此也是存储的512字节大小的数据块。<br>在InnoDB存储引擎运行期间log buffer根据一定的规则将内存中的log block刷新到磁盘，这里包括：</p>
+<ul>
+<li>事务提交时</li>
+<li>写入检查点值时</li>
+<li>当log buffer中有已使用空间超过某个阈值时</li>
+</ul>
+<p>重做日志组中每个文件的前2KB的部分不存储log block信息，但是在且仅在重做日志组的第一个重做日志文件存储固定的内容，其余文件留空。</p>
+<blockquote>
+<pre><code>redo log file前2KB部分内容
+        存储内容       大小(字节)
+    log file header      512
+    checkpoint1          512
+    空                   512
+    checkpoint2          512
+</code></pre></blockquote>
+<p>当写入log block的时候，需要更新前2KB部分的信息，这就导致了log block的写入不是完全顺序的。</p>
+<p>从上面结构中看出<strong>检查点(checkpoint)</strong>有两个字，这个设计是为了避免介质失败，提高可用性。这两个checkpoint block是交替更新，因此在恢复数据是，只需要更新LSN大于较大的checkpoint的值的重做日志就可以。<br><img src="https://github.com/gamesdoa/img0/raw/master/mysql/redo-log/InnoDB%E4%B8%AD%E5%90%84%E7%A7%8DLSN.jpg" alt="InnoDB中的各种LSN"></p>
+<blockquote>
+<p>除了重做日志缓冲在事务提交时需要刷新到磁盘外，其他的LSN信息都是异步的刷新到持久存储上。</p>
+</blockquote>
+<h2 id="组提交"><a href="#组提交" class="headerlink" title="组提交"></a>组提交</h2><p>我们知道事务提交时为了确保重做日志持久化到磁盘上，需要调用一次fsync操作，而fsync性能又比较低，那么为了提高数据库性能，所以提出了组提交的概念。</p>
+<p>当重做日志缓冲刷新到重做日志文件时，InnoDB存储引擎会对最后一个操作日志块进行复制，为什么要这样实现？原因是：重做日志文件的写入都是由缓存写的，fsync操作在log-&gt;mutex之后，这样使其他事物可以继续将重做日志写入到redo log buffer中，实现组提交功能。</p>
+<h2 id="重做日志恢复"><a href="#重做日志恢复" class="headerlink" title="重做日志恢复"></a>重做日志恢复</h2><p>如何判断数据库是否需要恢复：数据库关闭时最后刷新页的LSN和重做日志中保存的检查点比较，如果相等，则不需要恢复，否则需要恢复，查找重做日志文件中的两个检查点的较大值，恢复区间为最后刷新页的LSN到重做日志文件最大检查点之间的数据。<br>恢复方式是：每次读取64KB（64K/512=128个重做日志块），进行分析，判断重做日志块中的日志是否包含上一个日志的内容(一个日志存在于多个日志块中)，之后根据日志对于的（space，offset）的哈希值插入到哈希表，最后根据哈希表中的日志进行页的恢复。</p>
+
+      
+    </div>
+
+	<div>
+	  
+		<div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+	  
+	</div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/mysql/" rel="tag"># mysql</a>
+          
+            <a href="/tags/redo-log/" rel="tag"># redo log</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/hello-world.html" rel="next" title="博客开篇">
+                <i class="fa fa-chevron-left"></i> 博客开篇
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/hotspot-jvm.html" rel="prev" title="hotspot内存模型分析">
+                hotspot内存模型分析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.gif"
+               alt="gamesdoa" />
+          <p class="site-author-name" itemprop="name">gamesdoa</p>
+           
+              <p class="site-description motion-element" itemprop="description">那些爬过走过跑过飞过的坎坷道路和酸甜苦辣--是我逝去的青春</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">6</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">3</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">6</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#redo-log简介"><span class="nav-number">1.</span> <span class="nav-text">redo log简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#物理逻辑日志"><span class="nav-number">2.</span> <span class="nav-text">物理逻辑日志</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LSN-log-sequence-number-日志序列号"><span class="nav-number">3.</span> <span class="nav-text">LSN : log sequence number(日志序列号)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#检查点"><span class="nav-number">4.</span> <span class="nav-text">检查点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#归档日志与恢复"><span class="nav-number">5.</span> <span class="nav-text">归档日志与恢复</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#重做日志物理架构"><span class="nav-number">6.</span> <span class="nav-text">重做日志物理架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#重做日志块"><span class="nav-number">7.</span> <span class="nav-text">重做日志块</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#重做日志组与重做日志文件"><span class="nav-number">8.</span> <span class="nav-text">重做日志组与重做日志文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#组提交"><span class="nav-number">9.</span> <span class="nav-text">组提交</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#重做日志恢复"><span class="nav-number">10.</span> <span class="nav-text">重做日志恢复</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy;  2015 - 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">gamesdoa</span>
+</div>
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.1"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+    <script>
+      var cloudTieConfig = {
+        url: document.location.href, 
+        sourceId: "",
+        productKey: "370e40e6557149eba0995419f9916493",
+        target: "cloud-tie-wrapper"
+      };
+    </script>
+    <script src="https://img1.ws.126.net/f2e/tie/yun/sdk/loader.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("bJ6SDp0eeVUg2nHJ0Xb6p01w-gzGzoHsz", "wre8x8t7Hal4YpTtUgP9kGI4");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

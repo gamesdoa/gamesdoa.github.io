@@ -1,0 +1,914 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>gamesdoa随记</title>
+  <subtitle>边走边记</subtitle>
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://gamesdoa.com/"/>
+  <updated>2017-06-29T10:14:03.574Z</updated>
+  <id>http://gamesdoa.com/</id>
+  
+  <author>
+    <name>gamesdoa</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>hotspot GC分析</title>
+    <link href="http://gamesdoa.com/hotspot-gc.html"/>
+    <id>http://gamesdoa.com/hotspot-gc.html</id>
+    <published>2017-06-19T16:00:00.000Z</published>
+    <updated>2017-06-29T10:14:03.574Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="为什么需要关注GC以及内存分配"><a href="#为什么需要关注GC以及内存分配" class="headerlink" title="为什么需要关注GC以及内存分配"></a>为什么需要关注GC以及内存分配</h2><blockquote>
+<p>jvm内存的动态分配和内存回收技术已经相当成熟了，我们看起来不需要关注GC和内存分配也能很好地工作，那么我们为什么还要去了解GC和内存分配呢？</p>
+<p>其实答案很简单：当需要排查各种内存溢出、内存泄漏问题时，当GC成为系统达到更高并发的瓶颈时，我们只有知道了它的工作原理，才能对其进行监控分析，才能找到问题解决问题。</p>
+</blockquote>
+<p><strong>在进行hotspot虚拟机的算法实现分析之前，我们需要先了解一下下面这些概念。</strong></p>
+<h2 id="区分对象是死亡还是存活的算法"><a href="#区分对象是死亡还是存活的算法" class="headerlink" title="区分对象是死亡还是存活的算法"></a>区分对象是死亡还是存活的算法</h2><h3 id="引用计算算法"><a href="#引用计算算法" class="headerlink" title="引用计算算法"></a>引用计算算法</h3><p><strong>引用计算(Reference Counting)</strong>：给对象添加一个引用计数器，每当有一个地方引用它时，计数器加1，当引用失效是计数器减1，任何时刻计数器为0时，说明对象不可能被使用。</p>
+<p>这种算法实现简单，判断效率很高，但是会有循环引用问题，A引用B，B也引用了A，这样即使没有其他对象引用，也不会被垃圾回收。</p>
+<h3 id="可达性分析算法"><a href="#可达性分析算法" class="headerlink" title="可达性分析算法"></a><span id="ra">可达性分析算法</span></h3><p><strong>可达性分析(Reachability Analysis)</strong>：通过一系列被称为”GC Roots”的对象作为起始点，从这些节点开始向下搜索，搜索走过的路径称为引用链(Reference Chain)，当一个对象到GC Roots没有任何引用链的时候，说明对象不可用。<br>这种算法的效率和存活对象大小有关，当大量存活对象存在时，效率比较低，但是不会有循环引用不问题。java内存回收一般就是使用这种算法实现的。</p>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/%E5%8F%AF%E8%BE%BE%E6%80%A7%E5%88%86%E6%9E%90.jpg" alt="可达性分析对象是否能被回收"></p>
+<p>在java语言中，可作为GC Roots的对象包括以下几种：</p>
+<ul>
+<li>虚拟机栈(栈帧中的本地变量表)中引用的对象。</li>
+<li>方法区中的静态属性引用的对象。</li>
+<li>方法区中常量引用的对象。</li>
+<li>本地方法栈中JNI引用的对象。</li>
+</ul>
+<h2 id="垃圾收集算法"><a href="#垃圾收集算法" class="headerlink" title="垃圾收集算法"></a>垃圾收集算法</h2><h3 id="标记-清除算法"><a href="#标记-清除算法" class="headerlink" title="标记-清除算法"></a>标记-清除算法</h3><p>最基础的收集算法，分为标记和清除两个阶段，标记阶段采用可达性分析算法，清除阶段，直接清除可回收的对象。</p>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/%E6%A0%87%E8%AE%B0-%E6%B8%85%E9%99%A4.jpg" alt="标记-清除算法"></p>
+<p>不足：</p>
+<ul>
+<li>效率问题：标记和清除两个过程的效率都不高。</li>
+<li>空间问题：标记清除之后会产生大量不连续的内存碎片，可能导致分配较大对象时，虽然有足够空间，但是却不能分配，会导致提前出发另外一种垃圾收集动作(后面讲CMS收集器的时候，并发失效的情况就有一种情况是因为这个原因造成的)<h3 id="复制算法"><a href="#复制算法" class="headerlink" title="复制算法"></a>复制算法</h3>为了解决效率问题，于是出现了复制算法(Copying)，它的实现是把内存按照容量划分成大小相等的两块，每次只使用其中一块，当这一块内存用完，就将还存活的对象复制到另一块上面，然后再把已使用过的内存开间一次清理掉。这样就可以每次对整个半区进行内存回收，内存分配时也就不会出现碎片问题，而且只需要移动堆顶的指针，按顺序分配内存即可，实现简单，运行效率高。</li>
+</ul>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/copying.jpg" alt="copying算法示意图"></p>
+<p>不足：</p>
+<blockquote>
+<p>内存分为两部分，可使用一下子就只剩下原有内存的一半，代价优点太高了，但是根据新生对象朝生夕死的特点，不需要分成对等的两部分，可以按照8：1：1分成3部分(具体实现详见hotspot新生代内存管理)</p>
+<p>存活对象较多的时候复制代价比较大，效率也会比较低。</p>
+</blockquote>
+<h3 id="标记-整理算法"><a href="#标记-整理算法" class="headerlink" title="标记-整理算法"></a>标记-整理算法</h3><p>针对标记-清除算法的空间碎片问题，提出了改方案，就是标记阶段和标记-清除一样，但是之后的阶段为整理，就是把存活对象都向一端移动，然后直接清理掉边界以外的内存：</p>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/mark-compact.jpg" alt="标记-整理算法示意图"></p>
+<h3 id="分代收集算法"><a href="#分代收集算法" class="headerlink" title="分代收集算法"></a>分代收集算法</h3><p>根据对象存活的特点把内存划分成几块，比如划分为新生代和老年代，这样就能根据不同年代的特点采用不用的收集算法。</p>
+<ul>
+<li>在新生代，对象一般都是朝生夕死，存活对象相对较少，这种就适用复制算法</li>
+<li>在老年代，对象存活比较久，存活对象数量比较多，很显然不适合复制算法，只能使用标记-清除或者标记-整理算法。</li>
+</ul>
+<p><strong>了解了以上的概念之后，我们再来看一下hotspot算法的实现</strong></p>
+<h2 id="Hotspot算法实现"><a href="#Hotspot算法实现" class="headerlink" title="Hotspot算法实现"></a>Hotspot算法实现</h2><h3 id="枚举根节点"><a href="#枚举根节点" class="headerlink" title="枚举根节点"></a>枚举根节点</h3><p>使用到我们之前说到的<a href="#ra">可达性分析算法</a>,其中可作为GC Roots的节点主要是全局性的引用与执行上下文，在方法区特别大的时候如果逐个检查必然会消耗很多时间，而且在可达性分析时还要求分析工作必须确保<strong>分析过程中的一致性</strong>，也就造就了这一阶段必须停顿所有执行线程也就是俗称的 <strong>Stop The World(STW)</strong>。那么即要求STW又会消耗很多时间，而对于程序执行而言，同样希望停顿时间越短越好，那么有什么好的解决办法呢？</p>
+<p>对于Hotspot来说，Hotspot使用一组称为OopMap的数据结构来处理，在类加载完成的时候，Hotspot就把对象内什么偏移量上是什么类型的数据计算出来，在JIT编辑过程中也会在特定的位置记录下栈和寄存器中那些位置是引用，这样GC在扫描的时候就可以直接通过OopMap得知这些信息，不需要一个不漏的检查所有执行上下文和全局的引用位置，已达到高效的目的，缩短STW时间。</p>
+<h3 id="安全点"><a href="#安全点" class="headerlink" title="安全点"></a>安全点</h3><p>在OopMap的协助下，Hotspot可以快速准确的完成GC Roots枚举，但是因为Oopmap内容变化的指令非常多，不可能为每一条指令都生成对应的OopMap，只能在特定的位置上记录这些信息，这个特定位置称为安全点(Safepoint)</p>
+<blockquote>
+<p>也就是所程序并不是在所有地方都能停顿下来开始GC，只有在到达安全点时才能暂停。</p>
+</blockquote>
+<p>怎么样才能在GC发生时让所有线程都跑到最近的安全点上再停顿下来呢？</p>
+<p>Hotspot采用主动式中断思想，当GC需要中断线程的时候，不直接对线程操作，仅仅简单的设置一个标志，各个线程执行时主动去轮询这个标志，发现中断标志为真时就自己中断挂起。<strong>轮询标志的地方和安全点设置成重合的，</strong>同时还是创建对象需要分配内存的地方。</p>
+<h3 id="安全区域"><a href="#安全区域" class="headerlink" title="安全区域"></a>安全区域</h3><p>当线程处于Sleep或者Blocked状态的时候，线程明显就是不能相应中断请求，跑到安全点去，而且JVM也不可能等待线程重新被分配CPU时间，所以就需要安全区域(Safe Region)来解决。</p>
+<blockquote>
+<p>安全区域是指，在一段代码中引用关系不会发生变化，在这个区域的任意地方开始GC都是安全的。</p>
+</blockquote>
+<p>在线程执行到Saft Region的时候，首先标识自己已近进入到Safe Region，那么，当在这期间JVM发起GC时，就不管标识自己为Safe Region的线程。当线程要离开Safe Region时，它要检查系统是否已经完成类跟节点枚举或者整个GC过程，如果完成，那么线程继续，否则，它必须等待收到可以安全离开Safe Region信号为止。</p>
+<h2 id="Hotspot堆内存划分"><a href="#Hotspot堆内存划分" class="headerlink" title="Hotspot堆内存划分"></a>Hotspot堆内存划分</h2><p>Hotspot的堆内存首先是划分为新生代和老年的，两个大的概念</p>
+<ul>
+<li>新生代：根据复制算法的特点，新生代又划分成3个部分，一个Eden区，两个Survivor区。使用规则是：内存分配在Eden区开始，当Eden区被耗尽时，发生GC，这是存活的对象进入一个Survivor区(S0)，下一次再发生GC时，存活对象由Eden区和S0区进入S1区，如此反复。默认的分配比例<strong>Eden:S0:S1 = 8:1:1</strong></li>
+<li>老年的：不再划分区域。当老年的内存不足以存放进入老年的内存是发生GC。</li>
+</ul>
+<h2 id="Hotspot中的GC收集器"><a href="#Hotspot中的GC收集器" class="headerlink" title="Hotspot中的GC收集器"></a>Hotspot中的GC收集器</h2><h3 id="Serial收集器"><a href="#Serial收集器" class="headerlink" title="Serial收集器"></a>Serial收集器</h3><p>特点：</p>
+<ul>
+<li>单线程收集</li>
+<li>只会使用一个CPU或者一个收集线程完成垃圾收集工作。</li>
+<li>必须暂停其他所有的工作线程，也就是Stop The World(STW)。</li>
+<li>由虚拟机后台发起并自动完成，用户不可控的。<blockquote>
+<p>根据Serial收集器的特点不难看出，在很多大型应用的场景下，这个收集器是不可接受的，那么它能在哪里使用呢？</p>
+<p>sun公司把它设置成Client模式下新生代的默认收集器，在单个CPU的环境下，效率最高。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="Throughput收集器"><a href="#Throughput收集器" class="headerlink" title="Throughput收集器"></a>Throughput收集器</h3><h4 id="MinorGC"><a href="#MinorGC" class="headerlink" title="MinorGC"></a><span id="tmgc">MinorGC</span></h4><p>Eden空间耗尽时，新创建的对象无法分配到内存时发生GC，这时的GC称为MinorGC。</p>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/throughput-minor.jpg" alt="throughput minor GC"></p>
+<p>如上图所示：在发生一次MinorGC的时候，会把Eden区和当前正在使用的Survivor区内的存活对象复制到另外一个空余的Survivor区内，然后清空eden区和使用的Survivor区。如此反复操作，每次GC时都是使存活对象存储在另外一个没有使用的Survivor区中。</p>
+<ul>
+<li>当存活对象太多，Survivor区无法存放的情况下，会有部分存活对象直接进入老年代。</li>
+<li>当对象在Survivor区经过多次GC周期(到达晋升阈值时)还存活的，则进入老年代。<blockquote>
+<p>可以通过-XX:InitialTenuringThreshold=N 设置晋升老年代的阈值(默认7)</p>
+<p>如希望跟踪每次minor GC后新的存活周期的阈值，可在启动参数上增加：-XX:+PrintTenuringDistribution，</p>
+<p>输出的信息中的：Desired survivor size 1086516 bytes, new threshold 7 (max 15)</p>
+<p>new threshold 7即标识新的存活周期的阈值为7。</p>
+</blockquote>
+</li>
+</ul>
+<h4 id="FullGC"><a href="#FullGC" class="headerlink" title="FullGC"></a>FullGC</h4><p>当老年代空间耗尽，无法存放新进入老年代对象时，发生GC，这种GC称为FullGC，一般时间比较长。</p>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/throughput-full.jpg" alt="throughput full GC"></p>
+<p>如上图所示，发生FullGC的时候会默认清理新生代以及老年代的内存，并压缩活跃对象在老年代中保持。</p>
+<ul>
+<li><p>需要注意的是FullGC之后Eden和两个Survivor区，也就是整个新生代全部清空。</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//GC日志如下：</span></div><div class="line"><span class="number">3007005.033</span>: [Full GC [PSYoungGen: <span class="number">8786</span>K-&gt;<span class="number">0</span>K(<span class="number">679936</span>K)]		<span class="comment">//新生代清空</span></div><div class="line">[ParOldGen: <span class="number">690616</span>K-&gt;<span class="number">71645</span>K(<span class="number">699392</span>K)]		<span class="comment">// 老年代压缩</span></div><div class="line"><span class="number">699402</span>K-&gt;<span class="number">71645</span>K(<span class="number">1379328</span>K)		<span class="comment">// 总的堆内存变化</span></div><div class="line">[PSPermGen: <span class="number">55092</span>K-&gt;<span class="number">55092</span>K(<span class="number">55296</span>K)]		<span class="comment">//永久代</span></div><div class="line">, <span class="number">0.3721260</span> secs]		<span class="comment">//耗时</span></div><div class="line">[Times: user=<span class="number">0.61</span> sys=<span class="number">0.00</span>, real=<span class="number">0.38</span> secs]		<span class="comment">// CPU时间 0.61秒 真实时间 0.38秒 2个CPU处理</span></div></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="永久代GC"><a href="#永久代GC" class="headerlink" title="永久代GC"></a>永久代GC</h4><p>多数的FullGC永久代对象都不会回收，但是如果永久代空间耗尽，JVM也会发起FullGC回收永久代的对象。</p>
+<h4 id="调优"><a href="#调优" class="headerlink" title="调优"></a>调优</h4><p>针对Throughput收集器的调优，主要是对可承受最大停顿时间和应用在垃圾回收上花费时间为基准的。</p>
+<ul>
+<li>-XX:MaxGCPauseMillis = N   可承受的最大停顿时间</li>
+<li>-XX:GCTimeRatio = N        应用在垃圾回收上花费的时间，默认值99，也就是垃圾回收花费时间占应用时间的1%,计算公式(1/(1+GCTimeRatio))</li>
+</ul>
+<blockquote>
+<p>在 -XMS  、  -Xmx  、  XX:MaxGCPauseMillis = N 、-XX:GCTimeRatio = N 这些值当中MaxGCPauseMillis优先级最高，如果设置了这个值，新生代和老年代会随之进行调整，直到满足对应的停顿时间。一旦这个目标达成，堆得总容量就开始逐渐增大直到运行时间的比率达到设定值，这两个目标都达成后，JVM会尝试缩减堆得大小，尽可能以最小堆大小来满足这两个目标</p>
+</blockquote>
+<h3 id="CMS收集器"><a href="#CMS收集器" class="headerlink" title="CMS收集器"></a>CMS收集器</h3><p>CMS : Concurrent Mark Sweep ,一款基于”标记-清除”算法实现的收集器，以获取最短回收停顿时间为目标的收集器。主要会做下面三件事情：</p>
+<ol>
+<li>对新生代的对象进行回收(Stop The World) 所有应用线程会被暂停。</li>
+<li>启动一个或多个并发线程对老年代空间的垃圾进行回收。</li>
+<li>如果有必要，CMS会发起FullGC</li>
+</ol>
+<h4 id="新生代GC"><a href="#新生代GC" class="headerlink" title="新生代GC"></a>新生代GC</h4><p>新生代GC和Throughput收集器的MinorGC基本一样，<a href="#tmgc">可以看这里</a></p>
+<h4 id="并发老年代GC"><a href="#并发老年代GC" class="headerlink" title="并发老年代GC"></a>并发老年代GC</h4><p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/CMS-old.jpg" alt="并发收集老年代"></p>
+<p><strong>整个并发回收的过程是：</strong></p>
+<ol>
+<li>初始标记  ：  暂停所有应用程序线程 STW</li>
+<li>标记阶段  ：  应用程序线程持续运行，不会被中断 </li>
+<li>预清理    ： 与应用程序并行</li>
+<li>重新标记  ： 可中断预清理(比如发生新生代GC) STW</li>
+<li>清除     ：  并发运行(可以被新生代垃圾回收中断)</li>
+<li>并发重置</li>
+</ol>
+<p><strong><span id="cmsf">并发失效的情况</span>：</strong></p>
+<ul>
+<li><p>新生代垃圾回收，同时老年代又没有足够空间容纳晋升的对象时。日志中会出现(<strong><font color="#FF0000">concurrent mode failure</font></strong>)</p>
+<pre><code>1285.946: [GC 1285.946: [ParNew: 353920K-&gt;353920K(353920K), 0.8003983 secs]
+1286.747: [CMS1287.338: [CMS-con current-sweep: 7.902/9.624 secs] 
+[Times: user=96.62 sys=2.35, real=9.62 secs] 
+(concurrent mode failure): 
+2531317K-&gt;1161025K(2752512K), 24.8330303 secs] 
+2860005K-&gt;1161025K(3106432K), 
+[CMS Perm : 37117K-&gt;3 6905K(62368K)], 25.6341706 secs] 
+[Times: user=26.41 sys=0.05, real=25.63 secs]
+</code></pre></li>
+<li><p>老年代空间可以容纳晋升对象，但是由于空间碎片化导致失败时。日志中会出现(<strong><font color="#FF0000">promotion failed</font></strong>)</p>
+<pre><code>35333.562 : [GC  35333.562 : 
+[ParNew (promotion failed): 1877376K-&gt;1877376K(1877376K),  15.7989680  secs] 
+35349.361 : [CMS: 2144171K-&gt;2129287K(2146304K),  10.4200280  secs] 
+3514052K-&gt;2129287K(4023680K), 
+[CMS Perm : 119979K-&gt;118652K(190132K)],  26.2193500  secs] 
+[Times: user= 30.35  sys= 5.19 , real= 26.22  secs]
+</code></pre></li>
+</ul>
+<p>都会退化为FullGC，单线程处理并且Stop The World</p>
+<h4 id="FullGC-1"><a href="#FullGC-1" class="headerlink" title="FullGC"></a>FullGC</h4><p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/cms-fullgc.jpg" alt="CMS的FullGC"></p>
+<p>并发失败后的退化为FullGC的情况下，示意图如上。</p>
+<h4 id="永久代-元空间-GC"><a href="#永久代-元空间-GC" class="headerlink" title="永久代(元空间)GC"></a>永久代(元空间)GC</h4><p>永久代空间耗尽，需要回收时，会发生FullGC，日志一般如下：</p>
+<pre><code><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//GC日志如下：</span></div><div class="line"><span class="number">3007005.033</span>: [Full GC <span class="number">3007005.033</span>:</div><div class="line">	[CMS: <span class="number">8786</span>K-&gt;<span class="number">5847</span>K(<span class="number">679936</span>K), <span class="number">0.6421260</span> secs]	</div><div class="line">	<span class="number">699402</span>K-&gt;<span class="number">5847</span>K(<span class="number">1379328</span>K),		<span class="comment">// 总的堆内存变化</span></div><div class="line">[CMS Perm : <span class="number">55092</span>K-&gt;<span class="number">43092</span>K(<span class="number">55296</span>K)],	<span class="comment">//永久代</span></div><div class="line">, <span class="number">0.6721260</span> secs]		<span class="comment">//耗时</span></div></pre></td></tr></table></figure>
+</code></pre><p>CMS收集后永久代空间大小减小了，Java8中，元空间也是一样的情况。</p>
+<blockquote>
+<p>默认情况：CMS收集器不会对永久代(元空间)进行收集，但是，它一旦被耗尽，就需要进行Full GC，所有没有被引用的类都会被回收。</p>
+</blockquote>
+<h4 id="调优-1"><a href="#调优-1" class="headerlink" title="调优"></a>调优</h4><ol>
+<li><p>针对并发模式失效的调优</p>
+<ul>
+<li>想办法增大老年代空间.<blockquote>
+<p>增加更多的堆空间(个人推荐)</p>
+<p>移动部分新生代空间到老年代:个人不推荐这种方式，因为新生代变小会带来一系列问题</p>
+<blockquote>
+<p>如非必要的对象可能会更快晋升到老年代，使老年代对象占用空间增加过快。</p>
+<p>会使新生代GC频率过高，导致对并发GC的中断，反而使并发更容易失效</p>
+</blockquote>
+</blockquote>
+</li>
+<li><p>尽早开启并发收集，更早的启动并发收集，完成垃圾收集的几率就更大。</p>
+<blockquote>
+<p>-XX:CMSInitiatingOccupancyFraction=N : 设置当老年代内的对象占老年代内存的百分之多少的时候，开启并发收集，默认值70.</p>
+<blockquote>
+<p>我应该怎么样设置CMSInitiatingOccupancyFraction？<br>在GC日志中查找并发模式失效第一次出现的位置(<a href="#cmsf">如何查找</a>)，然后再反向查找最近的一个启动日志，日志中含有CMS-initial-mark,然后827596k/1379328K=60% ，也就是60%的时候开始的并发收集。建议可以减少10-20%。</p>
+</blockquote>
+</blockquote>
+<pre><code>6457.548: [GC [1 CMS-initial-mark:827596k(1379328K)]
+        66428k(2379328K), 0.0830120 secs]
+        [Times: user=0.08 sys=0.00, real=0.08 secs]]
+</code></pre><blockquote>
+<p>-XX:+UseCMSInitiatingOccupancyOnly ： 直接使用设定的CMSInitiatingOccupancyFraction的值，还是虚拟机用更加复杂的方式计算出来开启占比？设置成true，直接使用。默认是false，虚拟机计算。</p>
+</blockquote>
+</li>
+</ul>
+</li>
+</ol>
+<pre><code>- 使用更多的后台回收线程
+&gt;每个CMS后台线程都会100%的占用机器上的一个CPU，如果应用并发模式失效，并且又有额外的CPU周期可用，可以设置-XX:ConcGCThreads=N标志，增加后台线程数目。默认情况下:ConcGCThreads = (3 + ParallelGCThreads) / 4;
+&gt;&gt; 为什么每个CMS线程都独占一个CPU？
+&gt;&gt; 其实这个不难理解，如果不是独占CPU的话，和别的应用程序公用，会出现资源竞争，会导致CMS线程的lose its race (失速)。
+</code></pre><ol>
+<li>针对永久代的调优<br> 默认情况下CMS不会对永久代进行垃圾回收，但是我们可以设置成与老年代同样的方式进行回收。<ul>
+<li>开启 -XX:+CMSPermGenSweepingEnabled ： 该值默认是关闭的，开启后会启动与老年代一样的处理方式，但是使用的CPU和触发标志都是跟老年代<strong>独立</strong>的</li>
+<li>-XX:CMSInitiatingPermOccupancyFraction=N  ： 设置占比达到多少时开启收集线程，默认是80(80%)</li>
+<li>-XX:+CMSClassUnloadingEnabled ： 开启释放不再被引用的类，默认只能释放少量的无效对象，类的元数据并不会被释放，只有开启之后才能释放类的元数据。<blockquote>
+<p>java8中CMSClassUnloadingEnabled值默认是开启的。</p>
+</blockquote>
+</li>
+</ul>
+</li>
+</ol>
+<h3 id="G1-Garbage-First-收集器"><a href="#G1-Garbage-First-收集器" class="headerlink" title="G1(Garbage-First)收集器"></a>G1(Garbage-First)收集器</h3><p>G1：Garbage-First，顾名思义，会先收集垃圾最多的分区(region)。分区既可以归属老年代，也可以归属新生代(在使用的时候谁申请就分配给谁)，默认分区2048个，同一个代的分区不需要保持连续。</p>
+<ul>
+<li><strong>新生代</strong>：其实没有绝对的必要分区，因为新生代进行垃圾回收时整个新生代空间要么被回收要么被晋升(移动到Survivor或者老年代)。采用分区的原因是可以方便的调整代的大小。</li>
+<li><strong>老年代</strong>：可以把大的区域拆分，这样每次都关注垃圾最多的区域，降低花费时间。</li>
+</ul>
+<p>G1收集器的收集活动主要包含4种操作：</p>
+<ol>
+<li>新生代垃圾收集；</li>
+<li>后台收集，并发周期；</li>
+<li>混合式垃圾收集；</li>
+<li>必要时的FullGc。</li>
+</ol>
+<h4 id="G1分区的大小"><a href="#G1分区的大小" class="headerlink" title="G1分区的大小"></a>G1分区的大小</h4><p>分区大小不是动态变化的，具体值在启动的时候依据堆得大小的最小值得出，分区大小的最小值是1MB。如果堆得最小值超过2GB：</p>
+<p>分区大小 = 1 &lt;&lt; log(初始堆的大小/2048) //使用基数为2取log的算法</p>
+<p>分区大小是2的最小的N次幂，并使其结果接近2048个分区</p>
+<blockquote>
+<p>分区限制：最小值1MB，最大值32MB</p>
+<p>可以使用-XX:G1HeapRegionSize=N设置值，N应该是2的幂，否则会向下取整到最近的2的幂。</p>
+</blockquote>
+<h4 id="新生代垃圾收集"><a href="#新生代垃圾收集" class="headerlink" title="新生代垃圾收集"></a>新生代垃圾收集</h4><p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/g1-young.jpg" alt="G1的新生代回收示意图"></p>
+<p>注：每一个小方块代表一个G1分区，黑色分区代表数据，[E]代表Eden、[O]代表老年代、[S]代表Survivor。</p>
+<blockquote>
+<p>虽然Eden以及Survivor是按照区块分配的，但是Eden和Survivor区的格式还是像之前的内存格式，大小也是固定的。不要以为还有空闲的分区就能无限申请内存分配给Eden区或者Survivor区。</p>
+</blockquote>
+<ul>
+<li><strong>空的区域不属于任何一个代，需要的时候G1收集器会强制指定这些空的分区用于任何需要的代。</strong></li>
+</ul>
+<p>Eden空间耗尽会触发G1垃圾收集器进行新生代垃圾收集(示意图中6个Eden分区)，新生代收集之后不会立刻又Eden区分配，但是会至少有一个Survivor区。<br>这里同样存在如果Survivor区扣减被填满，无法容纳的对象也会直接晋升到老年代。</p>
+<h4 id="并发G1垃圾收集周期"><a href="#并发G1垃圾收集周期" class="headerlink" title="并发G1垃圾收集周期"></a>并发G1垃圾收集周期</h4><p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/g1-curr.jpg" alt="G1的并发收集示意图"></p>
+<p>注：一些分区被标注了X，他们就是标记周期找到的包含最多垃圾的分区(优先清理垃圾最多的区)。</p>
+<ul>
+<li>示意图中新生代发生变化：说明在并发周期内至少有一次新生代GC。 </li>
+<li>X标注的区域属于老年代，同时依然保持有数据。 </li>
+<li>老年代(O和X),在标记周期结束后可能会变得更大，新生代有对象会晋升到老年代。</li>
+</ul>
+<p>下面来看一下并发周期包含哪些阶段，每个阶段都有哪些需要注意的点：</p>
+<ul>
+<li>初始-标记(initial-mark) ： 会暂停所有应用线，这里的实现是重用了新生代GC周期完成这部分工作，因此<strong>会做一次新生代收集</strong>工作。</li>
+<li>扫描根分区(root region) ： 并发运行，但是<strong>不能发送新生代收集</strong>，如果有新生代收集必须等待扫描结束才能继续新生代收集，会造成新生代收集停顿耗时更长。</li>
+<li>并发标记(concurrent mark) ： 完全在后台进行，开始和完成分别会刷出一行日志，[GC concurrent-mark-start] 和 [GC concurrent-mark-end,6.3345 sec] ,可以被新生代GC中断。</li>
+<li>重新标记(remarking) ： 暂停所有应用。</li>
+<li>清理 ： 暂停所有应用。</li>
+<li>并发清理</li>
+</ul>
+<p>通过上面几个步骤，垃圾的定位就完成了(会清理很少的垃圾，主要是定位垃圾最多的分区，也就是X区)。</p>
+<h4 id="混合式垃圾回收-mixed-GC"><a href="#混合式垃圾回收-mixed-GC" class="headerlink" title="混合式垃圾回收(mixed GC)"></a>混合式垃圾回收(mixed GC)</h4><p>混合式垃圾回收：不仅进行正常的新生代垃圾收集，同时也会回收部分后台扫描线程标记的分区。<br><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/g1-gc.jpg" alt="G1的混合GC示意图"></p>
+<p>注：G1收集器已经清空了Eden空间，同时调整了Survivor空间，并且三个标记X的分区也被回收，活跃数据移动到另外一个分区(减低了磁盘碎片化问题)。</p>
+<ul>
+<li>混合式垃圾回收周期会持续运行直到所有标记的分区都被回收，然后G1收集器恢复正常的新生代垃圾回收周期，并重新开启一轮并发周期，标记下一次哪些区域需要垃圾释放。</li>
+</ul>
+<h4 id="FullGC-2"><a href="#FullGC-2" class="headerlink" title="FullGC"></a>FullGC</h4><p>G1垃圾收集器在什么时候回启动FullGC？</p>
+<ul>
+<li><p>并发模式失败</p>
+<blockquote>
+<p>老年代在标记周期完成之前就被填满，放弃标记周期</p>
+</blockquote>
+<pre><code>234.34: [GC concurrent-mark-start]
+245.23: [Full GC 4095M-&gt;1395M(4096M),8.12322 secs]
+        [Times: user=6.40 sys=0.00 real=8.12 secs]
+254.34: [GC concurrent-mark-abort]
+</code></pre><blockquote>
+<p>出现这种情况可以通过一下手段解决：</p>
+<ul>
+<li>增加堆得大小</li>
+<li>更早开启后台处理</li>
+<li>增加后台处理的线程数</li>
+</ul>
+</blockquote>
+</li>
+<li>晋升失败<blockquote>
+<p>完成标记阶段，开始启动混合垃圾回收，清理老年代的分区，但是老年代空间在垃圾回收释放出足够内存之前，内存被耗尽。</p>
+<p>日志中可以看到在混合GC之后立刻一次FullGC</p>
+</blockquote>
+</li>
+<li><p>疏散失败</p>
+<blockquote>
+<p>进行新生代垃圾收集时，Survivor区和老年代没有足够的空间容纳所有的幸存对象。</p>
+</blockquote>
+<pre><code>345.33: [GC pause (young) (to-space overflow), 0.823456700 secs]
+</code></pre><blockquote>
+<p>表明堆已经用尽或者碎片化。最简单的就是增加堆大小</p>
+</blockquote>
+</li>
+<li>巨型对象分配失败<blockquote>
+<p>分配大于分区的对象的时候，需要在老年代找几个连续的空闲分区，如果找不到，就只能进行fullGC，所以尽量避免分配巨型对象。</p>
+</blockquote>
+</li>
+</ul>
+<h4 id="调优-2"><a href="#调优-2" class="headerlink" title="调优"></a>调优</h4><p>目标：避免发生并发模式失败或者疏散失败，减少收集过程中的停顿时间最小化。可调优选项</p>
+<ul>
+<li>通过增加总的堆空间大小或者调整老年代、新生代之间的比例来增加老年代空间的大小(调整比例不推荐，频繁新生代GC，遇到扫描根区分还要等待).</li>
+<li>增加后台线程数目(在有足够CPU资源的情况下).</li>
+<li>以更高的频率进行G1的后台垃圾收集活动。</li>
+<li>在混合式垃圾回收周期内完成更多的垃圾收集工作。</li>
+</ul>
+<p>最简单的调优方案：设置-XX:MaxGCPauseMillis=N。默认值200ms</p>
+<blockquote>
+<p>如果G1收集器发生STW的时长购过该值，G1收集器会尝试弥补：弥补的方法是尝试上面四种方式。<br>如果还是不能避免FullGC的情况下，可以按实际情况调整下面的值：</p>
+<ul>
+<li>调整后台线程数-XX:ConcGCThreads=N。默认的计算公式 ConcGCThreads = (ParalleGCThreads + 2) /4 (跟CMS收集很像是吧是？)</li>
+<li>调整G1垃圾收集器运行的频率。-XX:InitiatingHeapOccupancyPercent=N,默认45(45%),和CMS不一样的是这里的基数是整个堆大小，而不是像CMS那样只有老年代的大小。</li>
+<li>调整G1收集器的混合式垃圾收集周期。-XX:G1MixedGCCountTarget=N,G1垃圾收集回收分区时的最大混合式GC的周期数。默认8，减少可以帮助解决晋升失败的问题，代价是停顿时间更长。</li>
+</ul>
+</blockquote>
+<pre><code>----------------    --------华丽的分割线--------------------------
+</code></pre><h2 id="高级调优"><a href="#高级调优" class="headerlink" title="高级调优"></a>高级调优</h2><h3 id="晋升以及Survivor空间"><a href="#晋升以及Survivor空间" class="headerlink" title="晋升以及Survivor空间"></a>晋升以及Survivor空间</h3><p>新生代划分为一个Eden空间和两个Survivor空间的原因，让更多的对象在新生代内有更多的机会被回收。</p>
+<pre><code>Eden-&gt;S0 //第一次
+Eden + S0 -&gt; S1 //第二次
+Eden + S1 -&gt; S0 //第三次  
+Eden + S0 -&gt; S1 //第四次
+Eden + S1 -&gt; S0 //第五次  
+...
+//如此循环。
+</code></pre><ul>
+<li>什么时候对象会进入老年代？<blockquote>
+<ul>
+<li><p>Survivor不足以保存该次新生代GC中存活下来的对象的时候。</p>
+<blockquote>
+<p>-XX:InitialSurvivorRatio=N,调整Survivor空间的值。 survivor_space_size = new_size / (initial_survivor_ratio + 2)默认initial_survivor_ratio=8，所以每一个Survivor占比10%。</p>
+<p>可以设置Survivor为某一个固定值：-XX:SurvivorRatio=N。同时需要关闭自动调整，-XX:-UseAdaptiveSizePolicy。</p>
+</blockquote>
+</li>
+<li><p>在Survivor经历了多个GC周期达到晋升阈值的时候。 </p>
+<blockquote>
+<p>-XX:InitialTenuringThreshold=N,设置晋升阈值(Throughput和G1默认:7，CMS默认是:6)</p>
+<p>-XX:MaxTenuringThreshold=N，最大晋升阈值(Throughput和G1默认:15，CMS默认是:6)</p>
+<p>注：修改这个值要考虑一直不晋升造成的直接进入老年代问题，或者一直直接晋升进入老年代问题。</p>
+</blockquote>
+</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+<p>结：<br>如果Survivor过小，对象会直接晋升到老年代，从而触发更多的老年代GC，增加堆(至少增加新生代)的大小是最好的解决办法</p>
+<h3 id="分配大对象"><a href="#分配大对象" class="headerlink" title="分配大对象"></a>分配大对象</h3><h4 id="TLAB"><a href="#TLAB" class="headerlink" title="TLAB"></a>TLAB</h4><p>TLAB：Thread Local Allocation Buffer 线程本地分配缓冲区<br>Eden区中对象分配速度更快的原因就是因为每个线程都有一个固定的TLAB用于分配对象，这样就不需要在线程间同步。<br>TLAB的大小由三个因素决定</p>
+<ul>
+<li>应用程序的线程数</li>
+<li>Eden空间的大小</li>
+<li>线程的分配率</li>
+</ul>
+<p>哪些程序会受益于TLAB？</p>
+<ul>
+<li>需要分配大量巨型对象的应用程序</li>
+<li>相对于Eden空间的大小而言，应用程序线程数量过多的应用<blockquote>
+<p>TLAB默认是开启的，-XX:-UseTLAB可以关闭，不够考虑到TLAB带来的性能提升，最好还是不要关闭了。</p>
+</blockquote>
+</li>
+</ul>
+<p>因为TLAB的大小基于线程的分配率，所以不太可能准确预测应用程序的TLAB的大小，但是可以监控TLAB的分配情况，如果有大量对象分配发生在TLAB之外，可以减小分配对象的大小，或者调整TLAB的参数。</p>
+<blockquote>
+<p>JFR可以监控TLAB的分配情况。</p>
+<p>-XX:PrintTLAB标志可以在新生代GC的日志中找到相应的TLAB信息</p>
+</blockquote>
+<h4 id="调整TLAB"><a href="#调整TLAB" class="headerlink" title="调整TLAB"></a>调整TLAB</h4><ol>
+<li>增大Eden空间TLAB的值会自动增大</li>
+<li>-XX:TLABSize=N可以显式的设置TLAB的大小，为了避免每次GC的时候都调整TLAB的大小，-XX:-ResizeTLAB关闭重设大小。</li>
+</ol>
+<h4 id="巨型对象"><a href="#巨型对象" class="headerlink" title="巨型对象"></a>巨型对象</h4><p>对于TLAB空间无法分配的对象，JVM会尽量尝试在Eden空间中进行分配，如果Eden空间无法容纳该对象，就只能在老年代中分配空间。G1收集器，超过分区的话也只能在老年代分配空间。</p>
+<h2 id="很low的调优线路图"><a href="#很low的调优线路图" class="headerlink" title="很low的调优线路图"></a>很low的调优线路图</h2><p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/gc.jpg" alt="GC调优线路图"></p>
+]]></content>
+    
+    <summary type="html">
+    
+      hotspot作为sun公司对于jvm的实现，采用了什么思路，这一思路下各个部分是怎么样实现垃圾回收的？又有哪些GC策略？每种gc策略之间有什么区别？我们的应用又该怎么样选择gc策略？每一种gc策略要怎么样进行调优，需要关注那些调优点？对于这些问题我们来一起说道说道。
+    
+    </summary>
+    
+      <category term="java" scheme="http://gamesdoa.com/categories/java/"/>
+    
+    
+      <category term="java" scheme="http://gamesdoa.com/tags/java/"/>
+    
+      <category term="jvm" scheme="http://gamesdoa.com/tags/jvm/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>hotspot类加载机制分析</title>
+    <link href="http://gamesdoa.com/hotspot-classloader.html"/>
+    <id>http://gamesdoa.com/hotspot-classloader.html</id>
+    <published>2017-06-09T16:00:00.000Z</published>
+    <updated>2017-06-28T04:23:58.567Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="什么是类加载"><a href="#什么是类加载" class="headerlink" title="什么是类加载"></a>什么是类加载</h2><p>类的加载指的是将类的class文件中的二进制数据读入到内存中，将其放在运行时数据区的方法区内，然后在堆区创建一个java.lang.Class对象，用来封装类在方法区内的数据结构。类的加载的最终产品是位于堆区中的Class对象，Class对象封装了类在方法区内的数据结构，并且提供了访问方法区内的数据结构的接口。</p>
+<h2 id="类加载的时机"><a href="#类加载的时机" class="headerlink" title="类加载的时机"></a><span id="jump">类加载的时机</span></h2><p>什么情况下需要开发类的加载过程，java虚拟机规范中并没有进行强制约束，但是对于初始化阶段，虚拟机规范有严格的规定：</p>
+<ul>
+<li>遇到new、getstatic、putstatic或者invokestatic这4条字节码指令时，如果类没有进行过初始化，则需要先触发其初始化。</li>
+<li>使用java.lang.reflect包的方法对类进行发射调用的时候，如果类没有进行过初始化，则需要先触发其初始化。</li>
+<li>当初始化一个类的时候，如果发现其父类还没有进行过初始化，则需要先触发其父类的初始化。</li>
+<li>当虚拟机启动时，用户需要指定一个要执行的主类，虚拟机会先初始化这个主类。</li>
+<li>当使用JDK1.7的动态语言支持时，如果一个java.lang.invoke.MrthodHandle实例最后的解析结果是REF_getStatic、REF_putStatic、REF_invokeStatic的方法句柄时，并且这个方法句柄所对应的类没有进行过初始化，则需要先触发其初始化。</li>
+</ul>
+<blockquote>
+<p>注：当一个类在初始化时，要求其父类全部都已经初始化过了，但是一个接口在初始化时，并不需要其父接口全部完成了初始化，只有在真正使用到父接口的时候才会初始化。</p>
+</blockquote>
+<h2 id="类加载的过程"><a href="#类加载的过程" class="headerlink" title="类加载的过程"></a>类加载的过程</h2><p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-classloader/class%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F.jpg" alt="类加载的过程"></p>
+<p>类的生命周期包括：加载(Loading)、验证(Verification)、准备(Preparation)、解析(Resolution)、初始化(Initialization)、使用(Using)、卸载(Unloading) 7个阶段，其中验证、准备、解析3个部分统称为连接(Linking)。</p>
+<p>类加载的过程包括了<font color="#FF0000">加载、验证、准备、解析、初始化</font>五个阶段。在这五个阶段中，<strong>加载、验证、准备和初始化</strong>这四个阶段发生的顺序是确定的，而<strong>解析阶段</strong>则不一定，它在某些情况下可以在初始化阶段之后开始，这是为了支持Java语言的运行时绑定（也成为动态绑定或晚期绑定）。另外注意这里的几个阶段是按顺序开始，而不是按顺序进行或完成，因为这些阶段通常都是互相交叉地混合进行的，通常在一个阶段执行的过程中调用或激活另一个阶段。</p>
+<h3 id="加载"><a href="#加载" class="headerlink" title="加载"></a>加载</h3><p>加载是类加载过程的第一个阶段，在加载阶段，虚拟机需要完成以下3件事情：</p>
+<ul>
+<li>通过一个类的全限定名来获取定义此类的二进制字节流。</li>
+<li>将这个字节流所代表的静态存储结构转化为方法区的运行时数据结构。</li>
+<li>在内存中生成一个代表这个类的java.lang.Class对象，作为方法区这个类的各种数据的访问入口。</li>
+</ul>
+<blockquote>
+<p>注：相对于类加载过程的其他阶段，一个非数组类的加载阶段(准确的说，是类加载阶段中获取类的二进制字节流的动作)是开发人员可控性最强的，因为加载阶段既可以使用系统提供的引导类加载器来完成，也可以由用户自定义的类加载器去完成，开发人员可以通过定义自己的类加载器去控制字节流的获取方式（重写类加载器的loadClass()方法）。</p>
+<p>加载阶段完成后，虚拟机外部的二进制字节流就按照虚拟机所需的格式存储在方法区之中，然后在内存中实例化一个java.lang.Class类的对象，针对hotspot虚拟机而言，Class对象比较特殊，虽然是对象但是存放在方法区里面，这个对象将作为程序访问方法区中的这些类型数据的外部入口。</p>
+</blockquote>
+<h3 id="连接"><a href="#连接" class="headerlink" title="连接"></a>连接</h3><h4 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h4><p>验证是连接阶段的第一步，目的：确保Class文件的字节流中包含的信息符合当前虚拟机的要求，并且不会危害虚拟机自身的安全。</p>
+<p>从整体上看，验证阶段大致需要完成以下4个阶段的检验动作：</p>
+<ul>
+<li><p>文件格式验证</p>
+<blockquote>
+<p>验证字节流是否符合Class文件格式的规范，保证输入的字节流能正确的解析并存储于方法区之内，只有通过了这个阶段的验证后，字节流才会进入内存的方法区进行存储，后面3个验证阶段全部是基于方法区的存储结构进行的。</p>
+</blockquote>
+</li>
+<li><p>元数据验证</p>
+<blockquote>
+<p>对字节码描述的信息进行语义分析，以保证其描述的信息符合java语义规范的要求</p>
+</blockquote>
+</li>
+<li><p>字节码验证</p>
+<blockquote>
+<p>通过数据流和控制流分析，确定程序语义是合法的符合逻辑的，对类的方法进行校验分析，确保被验证类的方法在运行时不会做出危害虚拟机安全的事件。</p>
+</blockquote>
+</li>
+<li><p>符号引用验证</p>
+<blockquote>
+<p>发生在虚拟机将符合引用转化成直接引用的时候，动作发生在连接的第三个阶段<strong>解析</strong>，验证对类本身以外(常量池中的各种符号引用)的信息进行匹配性校验。</p>
+</blockquote>
+<p>  注：验证阶段对于虚拟机的类加载机制上一个非常重要但不是一定必要的阶段(对程序运行期没有影响)，<br>  对于进过反复验证的代码可以在启动的时候使用-Xverify:none参数关闭大部分的类验证，以缩短虚拟机类加载时间。</p>
+</li>
+</ul>
+<h4 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h4><p>正式为类变量分配内存并设置类变量初始值的阶段，这些变量所使用的内存都将在方法区中进行分配。</p>
+<ul>
+<li>内存分配只包括类变量(static)，而不包括实例变量，实例变量将会随着对象一起分配在java堆中</li>
+<li>通常情况下数据类型赋值为零值，除非使用了static final标示一个变量，才会在这一阶段直接赋值。<blockquote>
+<p>public static int value = 10;//准备阶段过后初始值为0，而不是10</p>
+</blockquote>
+</li>
+</ul>
+<blockquote>
+<p>public static final int value = 10；//准备阶段过后初始值为10</p>
+</blockquote>
+<h4 id="解析"><a href="#解析" class="headerlink" title="解析"></a>解析</h4><p>虚拟机将常量池内的符号引用替换为直接引用的过程，解析动作主要针对类或接口、字段、类方法、接口方法、方法类型、方法句柄和调用点限定符7类符号引用进行。</p>
+<ul>
+<li><p>符号引用:符号可以是任何形式的字面量，与虚拟机内存布局无关，并且引用的目标并不一定已经加载到内存中。</p>
+</li>
+<li><p>直接引用:直接指向目标的指针，相对偏移量或者一个能间接定位到目标的句柄。与虚拟机内存布局相关，并且目标必然已经存在内存中。</p>
+<h3 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h3><p>执行类构造器<clinit>()方法的过程，并为静态变量赋予正确的初始值，在Java中对类变量进行初始值设定有两种方式：</clinit></p>
+</li>
+<li><p>声明类变量是指定初始值</p>
+</li>
+<li>使用静态代码块为类变量指定初始值</li>
+</ul>
+<blockquote>
+<p>JVM初始化步骤</p>
+<ol>
+<li><p>假如这个类还没有被加载和连接，则程序先加载并连接该类</p>
+</li>
+<li><p>假如该类的直接父类还没有被初始化，则先初始化其直接父类</p>
+</li>
+<li><p>假如类中有初始化语句，则系统依次执行这些初始化语句</p>
+</li>
+</ol>
+</blockquote>
+<p>类初始化时机：<a href="#jump">见文第二部分,点击跳转</a></p>
+<h2 id="类加载器"><a href="#类加载器" class="headerlink" title="类加载器"></a>类加载器</h2><p>定义：通过一个类的全限定名来获取描述此类的二进制字节流的动作放在虚拟机外部去实现，以便让应用程序自己决定如何去获取所需要的类，这个动作的代码模块称为“类加载器”。</p>
+<p>类唯一性：由加载它的类加载器和类本身一同才能确定唯一性，因为每个类加载器都拥有独立的类名称空间，所以比较两个类是否相等，需要由同一个类加载器加载为前提，否则两个类即使来源同一个class文件也必定不相等。</p>
+<blockquote>
+<p>注：相等包括Class对象的equals()、isAssignableFrom()方法、isInstance()方法的返回结果，还有instanceof关键字对象所属关系判定等情况。</p>
+</blockquote>
+<h3 id="类加载"><a href="#类加载" class="headerlink" title="类加载"></a>类加载</h3><p><strong>类加载机制：</strong></p>
+<blockquote>
+<ul>
+<li><p>全盘负责:当一个类加载器负责加载某个Class时，该Class所依赖的和引用的其他Class也将由该类加载器负责载入，除非显示使用另外一个类加载器来载入</p>
+</li>
+<li><p>父类委托:先让父类加载器试图加载该类，只有在父类加载器无法加载该类时才尝试从自己的类路径中加载该类(<a href="#pdm">详情查看双亲委派模型</a>)</p>
+</li>
+<li><p>缓存机制:缓存机制将会保证所有加载过的Class都会被缓存，当程序中需要使用某个Class时，类加载器先从缓存区寻找该Class，只有缓存区不存在，系统才会读取该类对应的二进制数据，并将其转换成Class对象，存入缓存区。这就是为什么修改了Class后，必须重启JVM，程序的修改才会生效</p>
+</li>
+</ul>
+</blockquote>
+<p><strong>类加载有三种方式</strong>：</p>
+<ol>
+<li>命令行启动应用时候由JVM初始化加载</li>
+<li>通过Class.forName()方法动态加载</li>
+<li><p>通过ClassLoader.loadClass()方法动态加载</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> com.gamesdoa.classLoader;</div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ClassLoaderTest</span> </span>&#123;</div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> ClassNotFoundException </span>&#123;</div><div class="line">        ClassLoader loader = ClassLoaderTest.class.getClassLoader();</div><div class="line">        System.out.println(loader);</div><div class="line">        <span class="comment">//使用ClassLoader.loadClass()来加载类，不会执行初始化块</span></div><div class="line">        Class t = loader.loadClass(<span class="string">"com.gamesdoa.classLoader.Test2"</span>);</div><div class="line">        <span class="comment">//使用Class.forName()来加载类，默认会执行初始化块</span></div><div class="line">        <span class="comment">//Class t = Class.forName("com.gamesdoa.classLoader.Test2");</span></div><div class="line">        <span class="comment">//使用Class.forName()来加载类，并指定ClassLoader，初始化时不执行静态块</span></div><div class="line">        <span class="comment">//Class t = Class.forName("com.gamesdoa.classLoader.Test2", false, loader);</span></div><div class="line">        System.out.println(t);</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test2</span> </span>&#123;</div><div class="line">    <span class="keyword">static</span> &#123;</div><div class="line">        System.out.println(<span class="string">"我被执行了！"</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p><strong>Class.forName()和ClassLoader.loadClass()区别</strong></p>
+<table>
+<thead>
+<tr>
+<th>Class.forName()</th>
+<th style="text-align:left">ClassLoader.loadClass()</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>将类的.class文件加载到jvm中之外，还会对类进行解释，执行类中的static块</td>
+<td style="text-align:left">将.class文件加载到jvm中，不会执行static中的内容,只有在newInstance才会去执行static块。</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>注： Class.forName(name, initialize, loader)带参函数也可控制是否加载static块。并且只有调用了newInstance()方法采用调用构造函数，创建类的对象 。</p>
+</blockquote>
+<h3 id="双亲委派模型"><a href="#双亲委派模型" class="headerlink" title="*双亲委派模型"></a>*双亲委派模型</h3><p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-classloader/%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B%E5%AE%8C%E6%95%B4%E7%89%88.jpg" alt="双亲委派模型"></p>
+<blockquote>
+<font color="#FF0000">注:这里类加载器之间的父子关系不是以继承的关系来实现，而是使用组合关系来复用父加载器的代码</font>
+
+</blockquote>
+<pre><code><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> Class&lt;?&gt; loadClass(String name) <span class="keyword">throws</span> ClassNotFoundException &#123;</div><div class="line">       <span class="keyword">return</span> loadClass(name, <span class="keyword">false</span>);</div><div class="line">   &#125;</div><div class="line"></div><div class="line"><span class="keyword">protected</span> Class&lt;?&gt; loadClass(String name, <span class="keyword">boolean</span> resolve)</div><div class="line">       <span class="keyword">throws</span> ClassNotFoundException</div><div class="line">   &#123;</div><div class="line">       <span class="keyword">synchronized</span> (getClassLoadingLock(name)) &#123;</div><div class="line">           <span class="comment">// First, check if the class has already been loaded</span></div><div class="line">		<span class="comment">//首先，检查类是否已经被加载</span></div><div class="line">           Class&lt;?&gt; c = findLoadedClass(name);</div><div class="line">           <span class="keyword">if</span> (c == <span class="keyword">null</span>) &#123;<span class="comment">//如果没有被加载，就委托给父类加载或者委派给启动类加载器加载</span></div><div class="line">               <span class="keyword">long</span> t0 = System.nanoTime();</div><div class="line">               <span class="keyword">try</span> &#123;</div><div class="line">                   <span class="keyword">if</span> (parent != <span class="keyword">null</span>) &#123;<span class="comment">//父类不为null，也就是父类不是启动类加载器，委托给父类加载器加载</span></div><div class="line">                       c = parent.loadClass(name, <span class="keyword">false</span>);</div><div class="line">                   &#125; <span class="keyword">else</span> &#123;<span class="comment">//父类为null，也就是父类是启动类加载器，检查是否满足启动类加载器限制，满足则委托给启动类加载器加载，否则返回null</span></div><div class="line">                       c = findBootstrapClassOrNull(name);</div><div class="line">                   &#125;</div><div class="line">               &#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</div><div class="line">                   <span class="comment">// ClassNotFoundException thrown if class not found</span></div><div class="line">                   <span class="comment">// from the non-null parent class loader</span></div><div class="line">               &#125;</div><div class="line"></div><div class="line">               <span class="keyword">if</span> (c == <span class="keyword">null</span>) &#123;<span class="comment">//如果父类加载器和启动类加载器都不能完成加载任务，才调用自身的加载功能</span></div><div class="line">                   <span class="comment">// If still not found, then invoke findClass in order</span></div><div class="line">                   <span class="comment">// to find the class.</span></div><div class="line">                   <span class="keyword">long</span> t1 = System.nanoTime();</div><div class="line">                   c = findClass(name);</div><div class="line"></div><div class="line">                   <span class="comment">// this is the defining class loader; record the stats</span></div><div class="line">                   sun.misc.PerfCounter.getParentDelegationTime().addTime(t1 - t0);</div><div class="line">                   sun.misc.PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);</div><div class="line">                   sun.misc.PerfCounter.getFindClasses().increment();</div><div class="line">               &#125;</div><div class="line">           &#125;</div><div class="line">           <span class="keyword">if</span> (resolve) &#123;</div><div class="line">               resolveClass(c);</div><div class="line">           &#125;</div><div class="line">           <span class="keyword">return</span> c;</div><div class="line">       &#125;</div><div class="line">   &#125;</div></pre></td></tr></table></figure>
+</code></pre><p><strong><span id="pdm">双亲委派的工作过程</span></strong>：如果一个类加载器收到了类加载的请求，它首先不会自己去尝试加载这个类，而是把请求委托给父加载器去完成，依次向上，因此，所有的类加载请求最终都应该被传递到顶层的启动类加载器中，只有当父加载器在它的搜索范围中没有找到所需的类时，即无法完成该加载，子加载器才会尝试自己去加载该类，当最终的加载器加载失败时则会报出异常ClassNotFoundException。</p>
+<p><strong>双亲委派模型目的</strong></p>
+<ul>
+<li><p>系统类防止内存中出现多份同样的字节码</p>
+</li>
+<li><p>保证Java程序安全稳定运行</p>
+</li>
+<li><p>隔离不同加载器加载到的类对象</p>
+</li>
+</ul>
+<p><strong>自定义类加载</strong>：当遇到类似以下情况的时候，需要自定义类加载：</p>
+<ol>
+<li>在执行非信任代码之前，自动验证数字签名。</li>
+<li>动态地创建符合用户特定需要的定制化构建类。</li>
+<li>从特定的场所取得java class，例如数据库中和网络，尤其是还需要对数据进行解密等操作的情况下。</li>
+</ol>
+<blockquote>
+<p>自定义类加载器一般都是继承自 ClassLoader 类，只需要重写 findClass 方法即可，如果不是因为特殊目的一般不要重写loadClass方法，因为这样容易破坏双亲委托模式。</p>
+</blockquote>
+<pre><code><figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> com.gamesdoa.classLoader;</div><div class="line"></div><div class="line"><span class="keyword">import</span> java.io.ByteArrayOutputStream;</div><div class="line"><span class="keyword">import</span> java.io.File;</div><div class="line"><span class="keyword">import</span> java.io.FileInputStream;</div><div class="line"><span class="keyword">import</span> java.lang.reflect.InvocationTargetException;</div><div class="line"><span class="keyword">import</span> java.lang.reflect.Method;</div><div class="line"></div><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyClassLoader</span> <span class="keyword">extends</span> <span class="title">ClassLoader</span> </span>&#123;</div><div class="line">    <span class="keyword">private</span> String classpath;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="title">MyClassLoader</span><span class="params">(String classpath)</span></span>&#123;</div><div class="line">        <span class="keyword">this</span>.classpath = classpath;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="keyword">public</span> Class&lt;?&gt; findClass(String name)&#123;</div><div class="line">        <span class="keyword">byte</span>[] data = loadClassData(name);</div><div class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.defineClass(name , data , <span class="number">0</span> , data.length);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">public</span> <span class="keyword">byte</span>[] loadClassData(String name)&#123;</div><div class="line">        System.out.println(<span class="string">"加载"</span>+name);</div><div class="line">        <span class="keyword">try</span>&#123;</div><div class="line">            name = name.replace(<span class="string">"."</span> , <span class="string">"//"</span>);</div><div class="line">            FileInputStream is = <span class="keyword">new</span> FileInputStream(<span class="keyword">new</span> File(classpath + name + <span class="string">".class"</span>));</div><div class="line">            ByteArrayOutputStream baos = <span class="keyword">new</span> ByteArrayOutputStream();</div><div class="line">            <span class="keyword">int</span> b = <span class="number">0</span> ;</div><div class="line">            <span class="keyword">while</span>((b = is.read()) != -<span class="number">1</span>)&#123;</div><div class="line">                baos.write(b);</div><div class="line">            &#125;</div><div class="line">            is.close();</div><div class="line">            <span class="keyword">return</span> baos.toByteArray();</div><div class="line">        &#125; <span class="keyword">catch</span> (Exception e)&#123;</div><div class="line">            e.printStackTrace();</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InstantiationException, IllegalAccessException,</span></div><div class="line">            ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalArgumentException,</div><div class="line">            InvocationTargetException &#123;</div><div class="line">        MyClassLoader myLoader = <span class="keyword">new</span> MyClassLoader(<span class="string">"E:/"</span>);</div><div class="line"></div><div class="line"></div><div class="line">        Class&lt;?&gt; clazz = myLoader.loadClass(<span class="string">"com.gamesdoa.classLoader.Apple"</span>);</div><div class="line">        Class&lt;?&gt; clazz1 = myLoader.loadClass(<span class="string">"com.gamesdoa.classLoader.Apple"</span>);</div><div class="line">        System.out.println(clazz == clazz1);</div><div class="line">        System.out.println(clazz.getClassLoader());</div><div class="line">        System.out.println(clazz1.getClassLoader());</div><div class="line"></div><div class="line">        System.out.println(<span class="string">"================"</span>);</div><div class="line"></div><div class="line">        MyClassLoader myLoader1 = <span class="keyword">new</span> MyClassLoader(<span class="string">"E:/"</span>);</div><div class="line">        Class&lt;?&gt; clazz2 = myLoader1.loadClass(<span class="string">"com.gamesdoa.classLoader.Apple"</span>);</div><div class="line">        System.out.println(clazz2 == clazz1 );</div><div class="line">        System.out.println(clazz2.getClassLoader());</div><div class="line"></div><div class="line">        System.out.println(<span class="string">"================"</span>);</div><div class="line"></div><div class="line">        Object newInstance = clazz.newInstance();</div><div class="line">        Method declaredMethod = clazz.getDeclaredMethod(<span class="string">"say"</span>, <span class="keyword">new</span> Class[]&#123;&#125;);</div><div class="line">        declaredMethod.invoke(newInstance, <span class="keyword">new</span> Object[]&#123;&#125;);</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Apple</span> </span>&#123;</div><div class="line">    <span class="keyword">static</span>&#123;</div><div class="line">        System.out.println(<span class="string">"int Apple"</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">say</span><span class="params">()</span></span>&#123;</div><div class="line">        System.out.println(<span class="string">"I am a apple.."</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+</code></pre><blockquote>
+<p>这个类本身可以被 AppClassLoader 类加载，因此我们不能把 com/gamesdoa/classLoader/MyClassLoader.class 放在类路径下。否则，由于双亲委托机制的存在，会直接导致该类由 AppClassLoader 加载，而不会通过我们自定义类加载器来加载。</p>
+</blockquote>
+<h3 id="破坏双亲委派模型-OSGI"><a href="#破坏双亲委派模型-OSGI" class="headerlink" title="破坏双亲委派模型(OSGI)"></a>破坏双亲委派模型(OSGI)</h3><p>双亲委派模型出现过3次大规模的“被破坏”情况</p>
+<ul>
+<li>双亲委派模式出现之前：JDK1.2之前</li>
+<li>线程上下文类加载器(Thread Context ClassLoader): 基础类又要调用回用户的代码(JNDI、JDBC、JCE、JAXB、JBI等)</li>
+<li>用户对于程序动态性的追求:代码热替换(HotSwap)、模块热部署(Hot Deploment)等</li>
+</ul>
+<p><strong>OSGI(Open Service Gateway Initiative)</strong>：java模块化标准：每一个程序模块(OSGI中称Bundle)都有一个自己的类加载器，当需要更换一个Bundle时，就把Bundle连同类加载器一起换掉以实现代码的热替换。因此在OSGI环境中类加载器发展为复杂的网状结构。下面来分析一下这个类加载器模型。</p>
+<p><strong>OSGI各个Bundle类加载之间的规则：</strong></p>
+<ul>
+<li>某个Bundle声明了一个它依赖的Package，如果有其他Bundle声明发布了这个Package，那么所有对于这个Package的类加载动作都会委派给发布它的Bundle类加载器去完成。</li>
+<li>不涉及某个具体Package时，各个Bundle加载器都是平级关系，只有具体使用某个Package和Class的时候，才会根据Package导入导出定义来构造Bundle间的委派和依赖。</li>
+<li>一个Bundle类加载器为其他Bundle提供服务时，会根据Export-Package列表严格控制访问范围。一个类存在于Bundle的类库但是没有被Export，那么这个Bundle的类加载器能找到这个类，但是不会提供给其他Bundle使用，而且OSGI平台也不会把其他Bundle的类加载请求分配给这个Bundle来处理。</li>
+</ul>
+<p><strong>OSGI类加载器架构：</strong></p>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/java/hotspot-classloader/OSGI%E7%9A%84%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E6%9E%B6%E6%9E%84.jpg" alt="OSGI类加载器架构"></p>
+<p><strong>OSGI类加载时查找规则如下：</strong></p>
+<ul>
+<li>以java.* 开头的类，委派给父类加载器加载。</li>
+<li>否则，委派列表名单内的类，委派给父类加载器加载。</li>
+<li>否则，Import 列表中的类，委派给Export这个类的Bundle的类加载器加载。</li>
+<li>否则，查找当前Bundle 的 Classpath，使用自己的类加载器加载。</li>
+<li>否则，查找是否在自己的 Fragement Bundle 中，如果是，则委派给 Fragment Bundle 的类加载器加载</li>
+<li>否则，查找Dynamic Import 列表的 Bundle， 委派给对应Bundle的类加载器加载。</li>
+<li>否则，查找失败。</li>
+</ul>
+<blockquote>
+<p>注：OSGI的Bundle相互引用有可能会造成死锁，因为当前类加载器在实例对象时需要先锁定，java.lang.ClassLoader.loadClass()方法是一整个synchronized块。当BundleA依赖PackageB,同时BundleB依赖PackageA时可能会死锁。</p>
+<p>loadClass的这个特性也就造就了<strong>饿汉模式</strong>的<strong>单例模式实现</strong></p>
+</blockquote>
+]]></content>
+    
+    <summary type="html">
+    
+      什么是JAVA类加载？JAVA类什么时候类加载？类加载都有哪些过程？类加载机制是怎么样的？双亲委派模型设计特点是怎么样的？有哪些优点？OSGI的类加载器为什么会火？OSGI类加载器原理是怎么样的？来来来一起说道说道。
+    
+    </summary>
+    
+      <category term="java" scheme="http://gamesdoa.com/categories/java/"/>
+    
+    
+      <category term="java" scheme="http://gamesdoa.com/tags/java/"/>
+    
+      <category term="jvm" scheme="http://gamesdoa.com/tags/jvm/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>hotspot内存模型分析</title>
+    <link href="http://gamesdoa.com/hotspot-jvm.html"/>
+    <id>http://gamesdoa.com/hotspot-jvm.html</id>
+    <published>2017-05-31T16:00:00.000Z</published>
+    <updated>2017-06-28T04:26:35.012Z</updated>
+    
+    <content type="html"><![CDATA[<p>Java虚拟机在执行Java程序的过程中会把它所管理的内存划分为若干个不同数据区域。这些区域都有各自的用途，以及创建和销毁的时间，有的区域随着虚拟机进程的启动而存在，有些区域则是依赖用户线程的启动和结束而建立和销毁。先直观的看一下虚拟机内存的划分。<br><img src="https://github.com/gamesdoa/img0/raw/master/java/jvm/jvm.jpg" alt="jvm运行时数据区"></p>
+<ul>
+<li>Java堆(GC管理的主要区域)</li>
+<li>方法区(内含运行时常量池)</li>
+<li>程序计数器</li>
+<li>虚拟机栈</li>
+<li>本地方法栈</li>
+<li>直接内存</li>
+</ul>
+<p>接下来分别看一下各个区域的职责：</p>
+<ul>
+<li><h2 id="Java堆"><a href="#Java堆" class="headerlink" title="Java堆"></a>Java堆</h2></li>
+</ul>
+<blockquote>
+<ul>
+<li>Java堆（java heap）是Java虚拟机所管理的内存中最大的一块</li>
+<li>它是被所有线程共享的一块内存区域，在虚拟机启动时创建</li>
+</ul>
+<p>hotspot虚拟机</p>
+<ul>
+<li>采用分代收集算法，所以java堆还可以细分为：新生代和老年的以及永久代(Java8的元空间)，新生代又可以分为一个eden空间和两个survivor空间。</li>
+<li>内存分配采用TLAB(Thread Local Allocation Buffer) 线程本地分配缓存区，这样在多线程的情况下创建对象速度会有较明显的提升。</li>
+</ul>
+<p>Java堆是垃圾收集管理的主要区域。根据Java虚拟机规范的规定，Java堆可以处于物理上不连续的内存空间中，只要逻辑上是连续的即可，就像我们的磁盘空间一样。在实现时，既可以实现成固定大小的，也可以是可扩展的，不过当前主流的虚拟机都是按照可扩展来实现的（通过-Xmx和-Xms控制）。如果在堆中没有内存完成实例分配，并且堆也无法再扩展时，将会抛出OutOfMemoryError异常。</p>
+</blockquote>
+<ul>
+<li><h2 id="方法区-内含运行时常量池"><a href="#方法区-内含运行时常量池" class="headerlink" title="方法区(内含运行时常量池)"></a>方法区(内含运行时常量池)</h2></li>
+</ul>
+<blockquote>
+<ul>
+<li><strong>方法区（Method Area）</strong>与Java堆一样，是各个线程共享的内存区域，它用于存储已被虚拟机加载的类信息、常量、静态变量、即时编译器编译后的代码等数据。别名又叫Non-Heap(非堆)</li>
+</ul>
+<p>在hotspot中这一块又叫做<strong>永久代(Permanent Generation)</strong>:这样的好处是垃圾管理器可以像管理java堆那样管理这一部分内存，但是一般性能不佳，尤其是对于类的卸载条件相当严苛。<em>在JDK1.7中原来存放在永久代的字符串常量池已经从永久代移出</em>。</p>
+<p>Java虚拟机规范对这个区域的限制非常宽松，除了和Java堆一样不需要连续的内存和可以选择固定大小或者可扩展外，还可以选择不实现垃圾收集。<br>根据Java虚拟机规范的规定，当方法区无法满足内存分配需求时，将抛出OutOfMemoryError异常。</p>
+<ul>
+<li><strong>运行时常量池(Runtime Constant Pool)</strong>：是方法区的一部分，Class文件中除了有关的版本、字段、方法、接口等描述信息外，还有一项信息就是常量池(Constant Pool Table)，用于存放编译期生成的各种字面量和符号引用，这部分内容将在类加载后进入方法区的运行时常量池中存放。<br>运行时常量池另外一个重要特征是具备动态性：运行期间也可能将新的常量放入常量池中，例如：String类的intern()方法。</li>
+</ul>
+</blockquote>
+<ul>
+<li><h2 id="程序计数器"><a href="#程序计数器" class="headerlink" title="程序计数器"></a>程序计数器</h2></li>
+</ul>
+<blockquote>
+<ul>
+<li>当前线程所执行的字节码行号指示器</li>
+<li>字节码解释器工作依赖计数器控制完成</li>
+<li>通过执行线程行号记录，让线程轮流切换各条线程之间计数器互不影响</li>
+<li>线程私有，生命周期与线程相同，随JVM启动而生，JVM关闭而死</li>
+<li>线程执行Java方法时，记录其正在执行的虚拟机字节码指令地址</li>
+<li>线程执行Nativan方法时，计数器记录为空（Undefined）</li>
+<li>唯一在Java虚拟机规范中没有规定任何OutOfMemoryError情况区域</li>
+</ul>
+<p>程序计数器（Program Counter Register）是一块较小的内存空间，它可以看做是当前线程所执行的字节码行号指示器。字节码解释器工作时就是通过改变这个计数器的值来选取下一条需要执行的字节码指令，分支、循环、跳转、异常处理、线程恢复等基础功能都需要依赖这个计数器来完成。</p>
+<p>由于Java虚拟机的多线程是通过线程轮流切换并分配处理器执行时间的方式来实现的，在任何一个确定的时刻，一个处理器（对于多核处理器来说是一个内核） 只会执行一条线程中的指令。因此，为了线程切换后能恢复到正确的执行位置，每条线程都需要有一个独立的程序计数器，各条线程之间的计数器互不影响、独立存储，因此需要是“线程私有”的。</p>
+<p>如果线程正在执行的是一个Java方法，这个计数器记录的是正在执行的虚拟机字节码指令的地址；如果正在执行的是Natvie方法，这个计数器值则为空 （Undefined）。</p>
+</blockquote>
+<ul>
+<li><h2 id="Java虚拟机栈"><a href="#Java虚拟机栈" class="headerlink" title="Java虚拟机栈"></a>Java虚拟机栈</h2></li>
+</ul>
+<blockquote>
+<ul>
+<li>线程私有，生命周期与线程相同</li>
+<li>用于存储局部变量、操作栈、动态链接、方法出口</li>
+<li>每一个方法被调用直至执行完成的过程，就对应着一个栈帧在虚拟机栈中从入栈到出栈的过程。</li>
+</ul>
+<p>Java虚拟机栈（Java Vitual Machine Stacks）也是线程私有的，他的生命周期与线程相同。<br>虚拟机栈描述的是Java方法执行的内存模型：每个方法被执行的时候都会同时创建一个栈帧 （Stack Frame）用于存储局部变量表、操作栈、动态链接、方法出口等信息。每一个方法被调用直至执行完成的过程，就对应着一个栈帧在虚拟机栈中从入栈到出栈的过程。</p>
+<p>局部变量表存放了编译器克制的各种基本数据类型（boolean、byte、char、short、int、float、long、double）、对象引用（Object reference）和字节码指令地址（returnAddress类型）。</p>
+<p>在Java虚拟机规范中，对于此区域规定了两种异常状况：</p>
+<blockquote>
+<ul>
+<li><p>如果线程请求的栈深度大于虚拟机所允许的深度，将抛出StackOverflowError异常；</p>
+</li>
+<li><p>如果虚拟机栈可以动态扩展，当扩展时无法申请到足够的内存时会抛出OutOfMemoryError异常。</p>
+</li>
+</ul>
+</blockquote>
+<p>对于32位的jvm，默认大小为256kb, 而64位的jvm, 默认大小为512kb,可以通过-Xss设置虚拟机栈的最大值。不过如果设置过大，会影响到可创建的线程数量。</p>
+</blockquote>
+<ul>
+<li><h2 id="本地方法栈"><a href="#本地方法栈" class="headerlink" title="本地方法栈"></a>本地方法栈</h2></li>
+</ul>
+<blockquote>
+<p>本地方法栈（Native Method Stacks）与虚拟机栈所发挥的作用非常类似，区别在于虚拟机栈为虚拟机执行Java方法服务，而本地方法栈则是为虚拟机使用到的Native方法服务。</p>
+<p>在hotspot实现中，本地方法栈和虚拟机栈合二为一</p>
+</blockquote>
+<ul>
+<li><h2 id="直接内存"><a href="#直接内存" class="headerlink" title="直接内存"></a>直接内存</h2></li>
+</ul>
+<blockquote>
+<p>直接内存(Direct Memory) :不是虚拟机运行时数据区的一部分，也不是java虚拟机规范中定义的内存区域，但是有可能导OutOfMemoryError异常。<br>主要使用在NIO(new Input/Output)类，这个类基于通道(Channel)和缓存区(Buffer)的I/O方式，使用Native函数直接分配堆外内存，这样的好处是提高性能，可以预先分配一个大的内存块，使用的时候直接在上面切分，类似TLAB，不需要每次都重新在系统上分配。<br>但是这个区域是不受java堆限制的，所以可能会造成内存溢出。</p>
+</blockquote>
+]]></content>
+    
+    <summary type="html">
+    
+      hotspot的内存模型是什么样子的？运行时数据区有哪些部分组成？每个部分都有哪些作用？我们平时工作中常说的GC又是工作在那些部分的？来来来一起说道说道。
+    
+    </summary>
+    
+      <category term="java" scheme="http://gamesdoa.com/categories/java/"/>
+    
+    
+      <category term="java" scheme="http://gamesdoa.com/tags/java/"/>
+    
+      <category term="jvm" scheme="http://gamesdoa.com/tags/jvm/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>mysql InnoDB redo log 分析</title>
+    <link href="http://gamesdoa.com/mysql-innodb-redo-log.html"/>
+    <id>http://gamesdoa.com/mysql-innodb-redo-log.html</id>
+    <published>2017-05-04T16:00:00.000Z</published>
+    <updated>2017-06-28T04:26:02.487Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="redo-log简介"><a href="#redo-log简介" class="headerlink" title="redo log简介"></a>redo log简介</h2><p><strong>重做日志（redo log）</strong> 用来实现事物的持久化，即事务ACID中的D。redo log由两部分组成：</p>
+<ul>
+<li>内存中的redo log buffer 易丢失</li>
+<li>外存中的redo log file 持久的</li>
+</ul>
+<p>InnoDB通过force log at commit机制实现事务的持久化，即当事务commit时，必须先将该事务的所有日志写入到重做日志文件进行持久化，待完成后事务的commit操作才算完成。</p>
+<p>redo log基本上是<strong>顺序写</strong>，并且在数据库运行期间不需要对redo log的文件进行读取操作。</p>
+<p>为了确保每次日志都写入到redo log file，在每次将redo log buffer写入到redo log file后，InnoDB存储引擎都需要调用一次fsync操作，因为redo log先写入到文件系统缓存，为了确保redo log写入到磁盘，必须进行一次fsync操作，这里也一般是数据库系统的瓶颈。事务TPS取决于磁盘性能。</p>
+<blockquote>
+<p>参数innodb_flush_log_at_trx_commit可以设置磁盘刷新策略</p>
+<ul>
+<li>0：事务不强制写入redo log，写入操作仅在master thread中进行完成，而master thread中每一秒进行一次redo log的fsync，因此宕机时有可能丢失最后一秒的数据。</li>
+<li>1：InnoDB默认值，每次事务提交都调用fsync操作，保证事务的完整性。</li>
+<li>2：事务提交时，redo log写入redo log file，仅写入到文件系统的缓存中，不进行fsync操作。数据库宕机，操作系统不宕机数据不丢失，操作系统宕机会丢失未从文件系统缓存刷新到redo log file那部分的数据。</li>
+</ul>
+</blockquote>
+<pre><code>对于插入50W数据的情况下设置不同值对于插入的速度影响如下
+innodb_flush_log_at_trx_commit         执行所用时间
+                0                        13.90s
+                1                        1m53.11s
+                2                        23.37s
+</code></pre><h2 id="物理逻辑日志"><a href="#物理逻辑日志" class="headerlink" title="物理逻辑日志"></a>物理逻辑日志</h2><p>不同的数据库系统针对重做日志有不同的实现方式，一般会有以下几种类型</p>
+<ul>
+<li>物理日志</li>
+<li>逻辑日志</li>
+<li>物理逻辑日志</li>
+</ul>
+<p><strong>物理日志(physical logging)</strong>：又称old value-new value logging，该日志是幂等的，保存的是页中发生变化的字节。<strong>问题</strong>是日志产生的量相对较大，例如对页整理的话，日志大小可能为页的大小</p>
+<p><strong>逻辑日志</strong>：记录的是对于表的操作，因此日志量很小(基本上是只记录操作语句)。<strong>问题</strong>是恢复时可能无法保证数据的一致性(宕机时可能使数据处于未知状态)。</p>
+<p><strong>物理逻辑日志</strong>：设计思路是：physical-to-a-page，logical-within-a-page。也就是对于也是记录物理日志，对于页内的操作是记录逻辑日志，这能很好地结合物理日志和逻辑日志的优点。例如对于页整理，如果使用物理日志形式，日志量需要一个页大小，而使用物理逻辑日志形式，只需要记录页的编号以及日志的类型</p>
+<h2 id="LSN-log-sequence-number-日志序列号"><a href="#LSN-log-sequence-number-日志序列号" class="headerlink" title="LSN : log sequence number(日志序列号)"></a>LSN : log sequence number(日志序列号)</h2><p>LSN特点是单调递增，代表每个重做日志的编号，这就意味着每一个日志都有一个LSN与之一一对应。<br>存在于多个对象中，表示的含义各不相同</p>
+<ul>
+<li>操作日志</li>
+<li>页</li>
+<li>检查点</li>
+</ul>
+<p><strong>操作日志</strong>：LSN是事务写入操作日志的字节总量，LSN记录的是操作日志的增量，单位字节。例如当前LSN1000，事务T1产生100字节的操作日志，那么LSN变成1100，事务T2产生200字节的操作日志，那么当前LSN为1300。<strong>InnoDB存储引擎</strong>首先是将重做日志写入到一个缓存中，因此存在已经写入到重做日志缓冲和重做日志文件的两部分LSN信息。</p>
+<p><strong>页</strong>：页的头信息中FIL_PAGE_LSN存储的是页的LSN，表示该页最后刷新的LSN大小，由于操作日志记录的是每个页的日志，因此页中的LSN可以用来判断该页是否需要进行恢复操作。例如：页P1的LSN为1000，数据库启动时InnoDB检测到写入重做日志中该页的LSN为1300并且事务已经提交，那么数据库需要进行恢复操作，需要将重做日志应用到P1中。如果重做日志的LSN小于P1页的LSN，则不需要进行重做操作。</p>
+<p><strong>检查点</strong>：表示页已经刷新到磁盘的LSN位置，当数据库重启时，仅需要从检查点开始进行恢复操作。若检查点的LSN与操作日志的LSN相同，表示所有页都已经刷新到磁盘，不需要进行恢复操作。这样的好处是减少数据库重启时间。</p>
+<pre><code>mysql&gt; SHOW INNODB STATUS\G;
+......
+---
+LOG
+---
+Log sequence number 0 11347131
+Log flushed up to   0 11338553
+Log checkpoint at   0 11056147
+......
+</code></pre><blockquote>
+<p>Log sequence number表示重做日志缓冲中已经写入的LSN值，Log flushed up to表示已经刷新到重做日志文件的LSN值，由于重做日志缓冲在master thread中会每秒定期地进行刷新到磁盘的操作，因此两者之间的差距很小。</p>
+<p>Log checkpoint at表示最新一次页刷新到磁盘时的LSN。该值与前两个值差距可能比较大。具体原因见下一部分的检查点相关</p>
+</blockquote>
+<h2 id="检查点"><a href="#检查点" class="headerlink" title="检查点"></a>检查点</h2><p>InnoDB存储引擎采用write ahead log(WAL)策略实现事务的持久性，即当事务提交时，首先将重做日志写入到文件，实际数据页刷新到磁盘的操作由检查点（checkpoint）负责。也就是说事务的日志在事务提交时确定写入到外存，但是缓冲池(buffer pool)中的页并没有刷新到磁盘，<strong>这是因为事务提交时仅仅是把事务操作所涉及页的重做日志都写入到磁盘(顺序写)</strong>。页的刷新时异步的，也就是检查点技术。</p>
+<p><strong>检查点的操作</strong>就是将缓冲池中的页刷新到磁盘,最终达到外存和内存中的页的数据一致。</p>
+<p><strong>检查点的作用</strong>缩短当数据库发生宕机时数据库恢复所需要的时间。</p>
+<p><strong>宕机后的恢复</strong>：检查点的值是根据LSN记录的，当检查点的值是1000，重做日志刷新到的位置为1300，那么1000之后的重做日志需要回放(replay)。也就是说因为有检查点操作回放重做日志只需要进行1000到1300之间的数据，如果没有进行过checkpoint那么需要回放所有的重做日志。</p>
+<p>InnoDB中存在两种检查点：</p>
+<ul>
+<li>sharp checkpoint</li>
+<li>fuzzy checkpoint</li>
+</ul>
+<blockquote>
+<p>sharp checkpoint将缓冲池中修改的页(脏页)，全部刷新到磁盘。<strong>优点</strong>是可以大大缩短宕机恢复所需要的时间。<strong>缺点</strong>是在进行sharp checkpoint时不能进行其他的DML操作，生产环境不可接受。</p>
+<p>fuzzy checkpoint将缓冲池中修改的页(脏页)，慢慢的刷新回磁盘。<strong>优点</strong>大大提高数据库的可用性，刷新时也可以进行DML操作。<strong>注意项</strong>脏页需要根据第一次被修改时的LSN进行排序，然后将最老的页先刷回到磁盘，也就使得页的刷新和日志的LSN顺序是一样的，从而保证恢复操作的准确性。</p>
+</blockquote>
+<h2 id="归档日志与恢复"><a href="#归档日志与恢复" class="headerlink" title="归档日志与恢复"></a>归档日志与恢复</h2><ul>
+<li><p><strong>归档日志</strong>：InnoDB存储引擎中，重做日志文件的大小是固定的，如果写入的日志大于重做日志文件的固定大小，就需要循环使用重做日志文件，这种方式称为round robin(轮循)。也就意味着之前写入的日志可能被新的日志覆盖，为了保留之前的重做日志，InnoDB存储引擎设计了归档日志，与重做日志文件的内容是完全相同的。</p>
+</li>
+<li><p><strong>恢复</strong>：InnoDB存储引擎在启动时不管上次数据库是否正常关闭，都会尝试进行恢复操作。重做日志记录的是物理逻辑日志因此恢复起来速度很快，并且InnoDB存储引擎也对恢复进行了优化，采用顺序读取并行应用重做日志方式加速恢复。而且因为有checkpoint技术存在，恢复过程中仅需要恢复checkpoint记录的LSN之后的日志部分，再次加速了恢复过程。</p>
+</li>
+</ul>
+<h2 id="重做日志物理架构"><a href="#重做日志物理架构" class="headerlink" title="重做日志物理架构"></a>重做日志物理架构</h2><p>InnoDB存储引擎中的重做日志由以下几个部分组成</p>
+<ul>
+<li>重做日志缓存(redo log buffer)</li>
+<li>重做日志组(redo log group)</li>
+<li>每个重做日志组包含多个重做日志文件(redo log file)</li>
+<li>归档重做日志文件</li>
+</ul>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/mysql/redo-log/redo%E7%89%A9%E7%90%86%E6%9E%B6%E6%9E%84.jpg" alt="重做日志存储结构"></p>
+<p>其中重做日志组是完全相同的镜像关系，目的是提高数据库的可用性，当一组中的介质损坏时。InnoDB存储引擎依然能够提供服务，虽然mysql的InnoDB这样设计了重做日志组，但是从源码层面看，其实并不能把重做日志组设置为1以外的值，否则会抛出InnoDB： or a wrong number of mirrored log group导致数据库不能启动，这是因为考虑到InnoDB存储引擎的性能，并且数据本身可以通过RAID保证数据的可靠性造成的。</p>
+<p>重做日志文件是round robin(轮循)的多个同样大小的文件，默认前缀ib_logfile，总文件大小不能超过4GB。</p>
+<p>归档日志是针对重做日志的备份归档，默认前缀ib_arch<em>log</em>，并且归档只对重做日志组1中的文件进行归档。</p>
+<h2 id="重做日志块"><a href="#重做日志块" class="headerlink" title="重做日志块"></a>重做日志块</h2><p>在InnoDB存储引擎中重做日志都是以512字节进行存储的，即重做日志缓存，重做日志文件，归档重做日志都是以块的方式保存的。但是如果一个页中产生的重做日志数量大于512字节，那么就需要分割为多个重做日志块进行存储</p>
+<p><strong>重做日志块的大小跟磁盘扇区大小一样</strong>，都是512字节，因此重做日志的写入可以保证原子性，不需要doublewrite技术。</p>
+<p><strong>从数据结构看</strong>：重做日志块除了日志本身，还有日志块头和日志块尾两部分，日志头一共占12个字节，日志尾占用8个字节，因此每个日志块其实只能存储492字节的日志。</p>
+<h2 id="重做日志组与重做日志文件"><a href="#重做日志组与重做日志文件" class="headerlink" title="重做日志组与重做日志文件"></a>重做日志组与重做日志文件</h2><p>InnoDB存储引擎的重做日志组在源码层面被限定成了一个，因此这里不过多的关注。</p>
+<p>重做日志组由多个重做日志文件组成，而重做日志文件存储的是log buffer中保存的log block，因此也是存储的512字节大小的数据块。<br>在InnoDB存储引擎运行期间log buffer根据一定的规则将内存中的log block刷新到磁盘，这里包括：</p>
+<ul>
+<li>事务提交时</li>
+<li>写入检查点值时</li>
+<li>当log buffer中有已使用空间超过某个阈值时</li>
+</ul>
+<p>重做日志组中每个文件的前2KB的部分不存储log block信息，但是在且仅在重做日志组的第一个重做日志文件存储固定的内容，其余文件留空。</p>
+<blockquote>
+<pre><code>redo log file前2KB部分内容
+        存储内容       大小(字节)
+    log file header      512
+    checkpoint1          512
+    空                   512
+    checkpoint2          512
+</code></pre></blockquote>
+<p>当写入log block的时候，需要更新前2KB部分的信息，这就导致了log block的写入不是完全顺序的。</p>
+<p>从上面结构中看出<strong>检查点(checkpoint)</strong>有两个字，这个设计是为了避免介质失败，提高可用性。这两个checkpoint block是交替更新，因此在恢复数据是，只需要更新LSN大于较大的checkpoint的值的重做日志就可以。<br><img src="https://github.com/gamesdoa/img0/raw/master/mysql/redo-log/InnoDB%E4%B8%AD%E5%90%84%E7%A7%8DLSN.jpg" alt="InnoDB中的各种LSN"></p>
+<blockquote>
+<p>除了重做日志缓冲在事务提交时需要刷新到磁盘外，其他的LSN信息都是异步的刷新到持久存储上。</p>
+</blockquote>
+<h2 id="组提交"><a href="#组提交" class="headerlink" title="组提交"></a>组提交</h2><p>我们知道事务提交时为了确保重做日志持久化到磁盘上，需要调用一次fsync操作，而fsync性能又比较低，那么为了提高数据库性能，所以提出了组提交的概念。</p>
+<p>当重做日志缓冲刷新到重做日志文件时，InnoDB存储引擎会对最后一个操作日志块进行复制，为什么要这样实现？原因是：重做日志文件的写入都是由缓存写的，fsync操作在log-&gt;mutex之后，这样使其他事物可以继续将重做日志写入到redo log buffer中，实现组提交功能。</p>
+<h2 id="重做日志恢复"><a href="#重做日志恢复" class="headerlink" title="重做日志恢复"></a>重做日志恢复</h2><p>如何判断数据库是否需要恢复：数据库关闭时最后刷新页的LSN和重做日志中保存的检查点比较，如果相等，则不需要恢复，否则需要恢复，查找重做日志文件中的两个检查点的较大值，恢复区间为最后刷新页的LSN到重做日志文件最大检查点之间的数据。<br>恢复方式是：每次读取64KB（64K/512=128个重做日志块），进行分析，判断重做日志块中的日志是否包含上一个日志的内容(一个日志存在于多个日志块中)，之后根据日志对于的（space，offset）的哈希值插入到哈希表，最后根据哈希表中的日志进行页的恢复。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      mysql的InnoDB存储引擎通过redo log实现事务的持久化，那么redo log的实现原理是怎么样的呢？LSN的作用是什么，为什么LSN会贯穿整个redo log的实现中？检查点又是来做什么的？redo log的架构是怎么样的？为什么说redo log不需要使用doublewrite技术？为了提供数据库性能，redo log做了哪些优化？且听小生慢慢道来。
+    
+    </summary>
+    
+      <category term="mysql" scheme="http://gamesdoa.com/categories/mysql/"/>
+    
+    
+      <category term="mysql" scheme="http://gamesdoa.com/tags/mysql/"/>
+    
+      <category term="redo log" scheme="http://gamesdoa.com/tags/redo-log/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>博客开篇</title>
+    <link href="http://gamesdoa.com/hello-world.html"/>
+    <id>http://gamesdoa.com/hello-world.html</id>
+    <published>2017-04-30T16:00:00.000Z</published>
+    <updated>2017-06-27T08:06:55.230Z</updated>
+    
+    <content type="html"><![CDATA[<p>近期在整理电脑，突然发现一个问题工作这么久，平时get到很多知识点，但是都没有系统的整理出来，只是很零散的记录在各个文档中，于是乎就想啊，作为一个专业的coding怎么能没有一个自己的博客记录平时get到的知识点呢？说做就做，行动起来，顺手搭建一个自己的博客吧，把平时get到的知识点归纳总结出来，以供后续查找。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      仅仅是博客开篇，寥寥几句而已。
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>hexo的next主题优化定制</title>
+    <link href="http://gamesdoa.com/hexo-next-tailor-made.html"/>
+    <id>http://gamesdoa.com/hexo-next-tailor-made.html</id>
+    <published>2017-04-30T16:00:00.000Z</published>
+    <updated>2017-06-28T02:08:15.565Z</updated>
+    
+    <content type="html"><![CDATA[<p>刚开始使用next主题，需要慢慢折腾，在折腾过程中，遇到的问题记录下来，做个备忘。</p>
+<h2 id="调整首页博文之间的间距"><a href="#调整首页博文之间的间距" class="headerlink" title="调整首页博文之间的间距"></a>调整首页博文之间的间距</h2><h3 id="博文间的距离"><a href="#博文间的距离" class="headerlink" title="博文间的距离"></a>博文间的距离</h3><p>想让首页的博文之间的间距缩小一些，看着紧凑些，如此处理呢？其实只需要修改themes\你的主题\source\css_variables\base.styl文件内的$post-eof-margin-top和$post-eof-margin-bottom这两个值，影响的是博文之间分割线的上下间距，如果想紧凑就调小，如果想宽松就是放大。</p>
+<h3 id="博文描述与全文阅读之间的间距"><a href="#博文描述与全文阅读之间的间距" class="headerlink" title="博文描述与全文阅读之间的间距"></a>博文描述与全文阅读之间的间距</h3><p>看着博文描述与全文阅读按钮之间的间距太宽？这里也是可以修改的，需要修改的文件路径是themes\你的主题\source\css_common\components\post\post-button.styl，查找并调整。</p>
+<pre><code>.post-button {
+    margin-top: 60px; //默认60个像素，可以根据自己的需求调整大小
+</code></pre><h3 id="调整博文作者行和博文描述的间距"><a href="#调整博文作者行和博文描述的间距" class="headerlink" title="调整博文作者行和博文描述的间距"></a>调整博文作者行和博文描述的间距</h3><p>感觉博文作者行与博文描述间的具体太宽？或者你感觉还不够？怎么办呢？其实只需要修改themes\你的主题\source\css_common\components\post\post-meta.styl文件内的</p>
+<pre><code>.posts-expand .post-meta {
+    margin: 3px 0 60px 0; 
+    //修改这里的第三个值的大小就可以实现修改博文作者行与博文描述间的距离
+    //第一个值是干什么的？你也好奇？其实只是修改博文作者行与上面博文标题的间距的，你可以调整试一下
+    color: $grey-dark;
+    font-family: $font-family-posts;
+    font-size: 12px;
+    text-align: center;
+</code></pre><h2 id="调整博文阅读区域"><a href="#调整博文阅读区域" class="headerlink" title="调整博文阅读区域"></a>调整博文阅读区域</h2><p>我感觉博文阅读区域太窄了，看着不舒服，怎么办？其实很简单的，只需要修改themes\你的主题\source\css_schemes\Pisces_layout.styl内的</p>
+<pre><code>//这一部分调整侧边栏博客描述以及导航信息
+.header {
+    position: relative;
+    margin: 0 auto;
+    width: 70%; //直接设置百分比，你想调整多少就多少
+
+//这一部分调整博文以及目录信息
+.container .main-inner {
+    width: 70%;
+</code></pre><ul>
+<li>这里针对Pisces主题的设置，原来的设计思路是显示器小于1600像素时阅读区展示700px，大于1600像素时阅读区展示900px。其实这里需要在行宽以及阅读舒适度方面做一个折中，毕竟单独的设置宽度太宽，阅读起来也不是很友好不是？ 就个人而言，太宽有时候会看串行啊。</li>
+</ul>
+<p>其他的还在慢慢折腾，有其他问题随时补充。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      首页每个博文展示之间的宽度太宽？我怎么样才能调窄一些让它看起来紧凑一些？看着net的布局中内容展示区太窄，如何定制next主题阅读器宽度？
+    
+    </summary>
+    
+      <category term="hexo" scheme="http://gamesdoa.com/categories/hexo/"/>
+    
+    
+      <category term="hexo" scheme="http://gamesdoa.com/tags/hexo/"/>
+    
+      <category term="next" scheme="http://gamesdoa.com/tags/next/"/>
+    
+  </entry>
+  
+</feed>
