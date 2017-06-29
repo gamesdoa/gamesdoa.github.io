@@ -114,7 +114,7 @@
 <meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/g1-curr.jpg">
 <meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/g1-gc.jpg">
 <meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/java/hotspot-gc/gc.jpg">
-<meta property="og:updated_time" content="2017-06-29T10:14:03.574Z">
+<meta property="og:updated_time" content="2017-06-29T14:46:57.261Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="hotspot GC分析">
 <meta name="twitter:description" content="hotspot作为sun公司对于jvm的实现，采用了什么思路，这一思路下各个部分是怎么样实现垃圾回收的？又有哪些GC策略？每种gc策略之间有什么区别？我们的应用又该怎么样选择gc策略？每一种gc策略要怎么样进行调优，需要关注那些调优点？对于这些问题我们来一起说道说道。">
@@ -470,7 +470,7 @@
 <p>在线程执行到Saft Region的时候，首先标识自己已近进入到Safe Region，那么，当在这期间JVM发起GC时，就不管标识自己为Safe Region的线程。当线程要离开Safe Region时，它要检查系统是否已经完成类跟节点枚举或者整个GC过程，如果完成，那么线程继续，否则，它必须等待收到可以安全离开Safe Region信号为止。</p>
 <h2 id="Hotspot堆内存划分"><a href="#Hotspot堆内存划分" class="headerlink" title="Hotspot堆内存划分"></a>Hotspot堆内存划分</h2><p>Hotspot的堆内存首先是划分为新生代和老年的，两个大的概念</p>
 <ul>
-<li>新生代：根据复制算法的特点，新生代又划分成3个部分，一个Eden区，两个Survivor区。使用规则是：内存分配在Eden区开始，当Eden区被耗尽时，发生GC，这是存活的对象进入一个Survivor区(S0)，下一次再发生GC时，存活对象由Eden区和S0区进入S1区，如此反复。默认的分配比例<strong>Eden:S0:S1 = 8:1:1</strong></li>
+<li>新生代：根据复制算法的特点，新生代又划分成3个部分，一个Eden区，两个Survivor区。使用规则是：内存分配在Eden区开始，当Eden区被耗尽时，发生GC，这时存活的对象进入一个Survivor区(S0)，下一次再发生GC时，存活对象由Eden区和S0区进入S1区，如此反复。默认的分配比例<strong>Eden:S0:S1 = 8:1:1</strong></li>
 <li>老年的：不再划分区域。当老年的内存不足以存放进入老年的内存是发生GC。</li>
 </ul>
 <h2 id="Hotspot中的GC收集器"><a href="#Hotspot中的GC收集器" class="headerlink" title="Hotspot中的GC收集器"></a>Hotspot中的GC收集器</h2><h3 id="Serial收集器"><a href="#Serial收集器" class="headerlink" title="Serial收集器"></a>Serial收集器</h3><p>特点：</p>
