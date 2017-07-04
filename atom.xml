@@ -841,6 +841,25 @@ Log checkpoint at   0 11056147
   </entry>
   
   <entry>
+    <title>博客开篇</title>
+    <link href="http://gamesdoa.com/hello-world.html"/>
+    <id>http://gamesdoa.com/hello-world.html</id>
+    <published>2017-04-30T16:00:00.000Z</published>
+    <updated>2017-06-27T08:06:55.230Z</updated>
+    
+    <content type="html"><![CDATA[<p>近期在整理电脑，突然发现一个问题工作这么久，平时get到很多知识点，但是都没有系统的整理出来，只是很零散的记录在各个文档中，于是乎就想啊，作为一个专业的coding怎么能没有一个自己的博客记录平时get到的知识点呢？说做就做，行动起来，顺手搭建一个自己的博客吧，把平时get到的知识点归纳总结出来，以供后续查找。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      仅仅是博客开篇，寥寥几句而已。
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
     <title>hexo的next主题优化定制</title>
     <link href="http://gamesdoa.com/hexo-next-tailor-made.html"/>
     <id>http://gamesdoa.com/hexo-next-tailor-made.html</id>
@@ -889,25 +908,6 @@ Log checkpoint at   0 11056147
       <category term="hexo" scheme="http://gamesdoa.com/tags/hexo/"/>
     
       <category term="next" scheme="http://gamesdoa.com/tags/next/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>博客开篇</title>
-    <link href="http://gamesdoa.com/hello-world.html"/>
-    <id>http://gamesdoa.com/hello-world.html</id>
-    <published>2017-04-30T16:00:00.000Z</published>
-    <updated>2017-06-27T08:06:55.230Z</updated>
-    
-    <content type="html"><![CDATA[<p>近期在整理电脑，突然发现一个问题工作这么久，平时get到很多知识点，但是都没有系统的整理出来，只是很零散的记录在各个文档中，于是乎就想啊，作为一个专业的coding怎么能没有一个自己的博客记录平时get到的知识点呢？说做就做，行动起来，顺手搭建一个自己的博客吧，把平时get到的知识点归纳总结出来，以供后续查找。</p>
-]]></content>
-    
-    <summary type="html">
-    
-      仅仅是博客开篇，寥寥几句而已。
-    
-    </summary>
-    
     
   </entry>
   
