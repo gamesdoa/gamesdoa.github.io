@@ -77,7 +77,7 @@
 <link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="hotspot,jvm,java内存模型,运行时数据区" />
+  <meta name="keywords" content="innodb,B+Tree,索引优化,最左前缀,聚族索引" />
 
 
 
@@ -95,19 +95,19 @@
 
 
 
-<meta name="description" content="hotspot的内存模型是什么样子的？运行时数据区有哪些部分组成？每个部分都有哪些作用？我们平时工作中常说的GC又是工作在那些部分的？来来来一起说道说道。">
-<meta name="keywords" content="hotspot,jvm,java内存模型,运行时数据区">
+<meta name="description" content="mysql的InnoDB索引是如何实现的？为什么InnoDB的索引要遵循最左前缀的规则？什么是聚族索引，什么又是辅助索引或者非聚族索引，他们之间的关系是怎么样的？如何根据InnoDB的实现来优化我们自己的sql语句？且听小生慢慢道来。">
+<meta name="keywords" content="innodb,B+Tree,索引优化,最左前缀,聚族索引">
 <meta property="og:type" content="article">
-<meta property="og:title" content="hotspot内存模型分析">
-<meta property="og:url" content="http://gamesdoa.com/hotspot-jvm.html">
+<meta property="og:title" content="mysql InnoDB 索引分析及优化">
+<meta property="og:url" content="http://gamesdoa.com/mysql-innodb-index.html">
 <meta property="og:site_name" content="gamesdoa随记">
-<meta property="og:description" content="hotspot的内存模型是什么样子的？运行时数据区有哪些部分组成？每个部分都有哪些作用？我们平时工作中常说的GC又是工作在那些部分的？来来来一起说道说道。">
-<meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/java/jvm/jvm.jpg">
-<meta property="og:updated_time" content="2017-06-28T04:26:35.012Z">
+<meta property="og:description" content="mysql的InnoDB索引是如何实现的？为什么InnoDB的索引要遵循最左前缀的规则？什么是聚族索引，什么又是辅助索引或者非聚族索引，他们之间的关系是怎么样的？如何根据InnoDB的实现来优化我们自己的sql语句？且听小生慢慢道来。">
+<meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/mysql/innodb-index/B%2BTree.jpg">
+<meta property="og:updated_time" content="2017-08-08T02:05:57.512Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="hotspot内存模型分析">
-<meta name="twitter:description" content="hotspot的内存模型是什么样子的？运行时数据区有哪些部分组成？每个部分都有哪些作用？我们平时工作中常说的GC又是工作在那些部分的？来来来一起说道说道。">
-<meta name="twitter:image" content="https://github.com/gamesdoa/img0/raw/master/java/jvm/jvm.jpg">
+<meta name="twitter:title" content="mysql InnoDB 索引分析及优化">
+<meta name="twitter:description" content="mysql的InnoDB索引是如何实现的？为什么InnoDB的索引要遵循最左前缀的规则？什么是聚族索引，什么又是辅助索引或者非聚族索引，他们之间的关系是怎么样的？如何根据InnoDB的实现来优化我们自己的sql语句？且听小生慢慢道来。">
+<meta name="twitter:image" content="https://github.com/gamesdoa/img0/raw/master/mysql/innodb-index/B%2BTree.jpg">
 
 
 
@@ -135,13 +135,13 @@
 
 
 
-  <link rel="canonical" href="http://gamesdoa.com/hotspot-jvm.html"/>
+  <link rel="canonical" href="http://gamesdoa.com/mysql-innodb-"/>
 
 
 
 
 
-  <title>hotspot内存模型分析 | gamesdoa随记</title>
+  <title>mysql InnoDB 索引分析及优化 | gamesdoa随记</title>
   
 
 
@@ -296,7 +296,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://gamesdoa.com/hotspot-jvm.html">
+    <link itemprop="mainEntityOfPage" href="http://gamesdoa.com/mysql-innodb-index.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gamesdoa">
@@ -313,7 +313,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">hotspot内存模型分析</h1>
+          <h1 class="post-title" itemprop="name headline">mysql InnoDB 索引分析及优化</h1>
         
 
         <div class="post-meta">
@@ -325,8 +325,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-06-01T00:00:00+08:00">
-                2017-06-01
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-07-01T00:00:00+08:00">
+                2017-07-01
               </time>
             
 
@@ -348,8 +348,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index">
-                    <span itemprop="name">java</span>
+                  <a href="/categories/mysql/" itemprop="url" rel="index">
+                    <span itemprop="name">mysql</span>
                   </a>
                 </span>
 
@@ -366,7 +366,7 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a class="cloud-tie-join-count" href="/hotspot-jvm.html#comments" itemprop="discussionUrl">
+                <a class="cloud-tie-join-count" href="/mysql-innodb-index.html#comments" itemprop="discussionUrl">
                   <span class="post-comments-count join-count" itemprop="commentCount"></span>
                 </a>
               </span>
@@ -375,7 +375,7 @@
 
           
           
-             <span id="/hotspot-jvm.html" class="leancloud_visitors" data-flag-title="hotspot内存模型分析">
+             <span id="/mysql-innodb-index.html" class="leancloud_visitors" data-flag-title="mysql InnoDB 索引分析及优化">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -393,7 +393,7 @@
 
           
               <div class="post-description">
-                  hotspot的内存模型是什么样子的？运行时数据区有哪些部分组成？每个部分都有哪些作用？我们平时工作中常说的GC又是工作在那些部分的？来来来一起说道说道。
+                  mysql的InnoDB索引是如何实现的？为什么InnoDB的索引要遵循最左前缀的规则？什么是聚族索引，什么又是辅助索引或者非聚族索引，他们之间的关系是怎么样的？如何根据InnoDB的实现来优化我们自己的sql语句？且听小生慢慢道来。
               </div>
           
 
@@ -407,96 +407,78 @@
       
 
       
-        <p>Java虚拟机在执行Java程序的过程中会把它所管理的内存划分为若干个不同数据区域。这些区域都有各自的用途，以及创建和销毁的时间，有的区域随着虚拟机进程的启动而存在，有些区域则是依赖用户线程的启动和结束而建立和销毁。先直观的看一下虚拟机内存的划分。<br><img src="https://github.com/gamesdoa/img0/raw/master/java/jvm/jvm.jpg" alt="jvm运行时数据区"></p>
+        <h2 id="B-Tree索引"><a href="#B-Tree索引" class="headerlink" title="B+Tree索引"></a>B+Tree索引</h2><p>B+Tree的数据结构这里就不详细表述了，如果你还不了解什么是B+Tree，请参考这里<a href="https://zh.wikipedia.org/wiki/B%2B%E6%A0%91" title="B+树" target="_blank" rel="external">https://zh.wikipedia.org/wiki/B%2B%E6%A0%91</a>，如果你不想花费时间研究B+Tree，在这里也附上一张个人理解的InnoDB实现的B+Tree图，并会稍作说明。</p>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/mysql/innodb-index/B%2BTree.jpg" alt="B+Tree个人理解图"></p>
 <ul>
-<li>Java堆(GC管理的主要区域)</li>
-<li>方法区(内含运行时常量池)</li>
-<li>程序计数器</li>
-<li>虚拟机栈</li>
-<li>本地方法栈</li>
-<li>直接内存</li>
+<li>B+Tree是一个多路查找树，扁平结构。</li>
+<li>非叶子节点只存储指向下层节点的指针。</li>
+<li>兄弟非叶子节点之间不存在指向指针。</li>
+<li><strong>数据只存储在叶子节点上。</strong></li>
+<li>每个叶子节点都有一个指向下个叶子节点的指针(持有兄弟叶子节点的指针)。</li>
+<li>每个节点都是一个16k大小的页</li>
+<li>数据插入时需要考虑负载因子和页分裂(页数据半分或者直接新页)</li>
+<li>数据删除时需要考虑负载因子和页合并</li>
+<li>非叶子节点指向叶子节点的指针，只能指向该叶子节点的页，具体数据需要把页加载到内存中然后使用二分查找定位数据。</li>
+<li>所有的值都是顺序存储的，叶子结点中</li>
+<li>在查找的时候必须按照最左前缀原则并且不能跳列，不然无法使用索引。</li>
+<li>在查询使用索引的时候如果遇到范围查询，范围查询的列右边的列将不会被使用到索引。</li>
 </ul>
-<p>接下来分别看一下各个区域的职责：</p>
-<ul>
-<li><h2 id="Java堆"><a href="#Java堆" class="headerlink" title="Java堆"></a>Java堆</h2></li>
+<h2 id="索引"><a href="#索引" class="headerlink" title="索引"></a>索引</h2><h4 id="索引优点："><a href="#索引优点：" class="headerlink" title="索引优点："></a>索引优点：</h4><ul>
+<li>大大减少服务器需要扫描的数据量</li>
+<li>帮助服务器避免排序和临时表</li>
+<li>将随机I/O变为顺序I/O</li>
 </ul>
-<blockquote>
-<ul>
-<li>Java堆（java heap）是Java虚拟机所管理的内存中最大的一块</li>
-<li>它是被所有线程共享的一块内存区域，在虚拟机启动时创建</li>
+<h4 id="索引缺点："><a href="#索引缺点：" class="headerlink" title="索引缺点："></a>索引缺点：</h4><ul>
+<li>对于小表，索引会增加额外的功能，全表扫描反而更快</li>
+<li>对于特大表，建立索引的代价太高，不适用，可以使用分区表。</li>
 </ul>
-<p>hotspot虚拟机</p>
-<ul>
-<li>采用分代收集算法，所以java堆还可以细分为：新生代和老年的以及永久代(Java8的元空间)，新生代又可以分为一个eden空间和两个survivor空间。</li>
-<li>内存分配采用TLAB(Thread Local Allocation Buffer) 线程本地分配缓存区，这样在多线程的情况下创建对象速度会有较明显的提升。</li>
-</ul>
-<p>Java堆是垃圾收集管理的主要区域。根据Java虚拟机规范的规定，Java堆可以处于物理上不连续的内存空间中，只要逻辑上是连续的即可，就像我们的磁盘空间一样。在实现时，既可以实现成固定大小的，也可以是可扩展的，不过当前主流的虚拟机都是按照可扩展来实现的（通过-Xmx和-Xms控制）。如果在堆中没有内存完成实例分配，并且堆也无法再扩展时，将会抛出OutOfMemoryError异常。</p>
+<h4 id="如何建立高性能索引？"><a href="#如何建立高性能索引？" class="headerlink" title="如何建立高性能索引？"></a>如何建立高性能索引？</h4><ul>
+<li>索引列的干净，独立<blockquote>
+<p>索引列不能是表达式的一部分，也不能是函数的参数。使用时也只能是干净的列。</p>
 </blockquote>
-<ul>
-<li><h2 id="方法区-内含运行时常量池"><a href="#方法区-内含运行时常量池" class="headerlink" title="方法区(内含运行时常量池)"></a>方法区(内含运行时常量池)</h2></li>
-</ul>
-<blockquote>
-<ul>
-<li><strong>方法区（Method Area）</strong>与Java堆一样，是各个线程共享的内存区域，它用于存储已被虚拟机加载的类信息、常量、静态变量、即时编译器编译后的代码等数据。别名又叫Non-Heap(非堆)</li>
-</ul>
-<p>在hotspot中这一块又叫做<strong>永久代(Permanent Generation)</strong>:这样的好处是垃圾管理器可以像管理java堆那样管理这一部分内存，但是一般性能不佳，尤其是对于类的卸载条件相当严苛。<em>在JDK1.7中原来存放在永久代的字符串常量池已经从永久代移出</em>。</p>
-<p>Java虚拟机规范对这个区域的限制非常宽松，除了和Java堆一样不需要连续的内存和可以选择固定大小或者可扩展外，还可以选择不实现垃圾收集。<br>根据Java虚拟机规范的规定，当方法区无法满足内存分配需求时，将抛出OutOfMemoryError异常。</p>
-<ul>
-<li><strong>运行时常量池(Runtime Constant Pool)</strong>：是方法区的一部分，Class文件中除了有关的版本、字段、方法、接口等描述信息外，还有一项信息就是常量池(Constant Pool Table)，用于存放编译期生成的各种字面量和符号引用，这部分内容将在类加载后进入方法区的运行时常量池中存放。<br>运行时常量池另外一个重要特征是具备动态性：运行期间也可能将新的常量放入常量池中，例如：String类的intern()方法。</li>
-</ul>
-</blockquote>
-<ul>
-<li><h2 id="程序计数器"><a href="#程序计数器" class="headerlink" title="程序计数器"></a>程序计数器</h2></li>
-</ul>
-<blockquote>
-<ul>
-<li>当前线程所执行的字节码行号指示器</li>
-<li>字节码解释器工作依赖计数器控制完成</li>
-<li>通过执行线程行号记录，让线程轮流切换各条线程之间计数器互不影响</li>
-<li>线程私有，生命周期与线程相同，随JVM启动而生，JVM关闭而死</li>
-<li>线程执行Java方法时，记录其正在执行的虚拟机字节码指令地址</li>
-<li>线程执行Nativan方法时，计数器记录为空（Undefined）</li>
-<li>唯一在Java虚拟机规范中没有规定任何OutOfMemoryError情况区域</li>
-</ul>
-<p>程序计数器（Program Counter Register）是一块较小的内存空间，它可以看做是当前线程所执行的字节码行号指示器。字节码解释器工作时就是通过改变这个计数器的值来选取下一条需要执行的字节码指令，分支、循环、跳转、异常处理、线程恢复等基础功能都需要依赖这个计数器来完成。</p>
-<p>由于Java虚拟机的多线程是通过线程轮流切换并分配处理器执行时间的方式来实现的，在任何一个确定的时刻，一个处理器（对于多核处理器来说是一个内核） 只会执行一条线程中的指令。因此，为了线程切换后能恢复到正确的执行位置，每条线程都需要有一个独立的程序计数器，各条线程之间的计数器互不影响、独立存储，因此需要是“线程私有”的。</p>
-<p>如果线程正在执行的是一个Java方法，这个计数器记录的是正在执行的虚拟机字节码指令的地址；如果正在执行的是Natvie方法，这个计数器值则为空 （Undefined）。</p>
-</blockquote>
-<ul>
-<li><h2 id="Java虚拟机栈"><a href="#Java虚拟机栈" class="headerlink" title="Java虚拟机栈"></a>Java虚拟机栈</h2></li>
-</ul>
-<blockquote>
-<ul>
-<li>线程私有，生命周期与线程相同</li>
-<li>用于存储局部变量、操作栈、动态链接、方法出口</li>
-<li>每一个方法被调用直至执行完成的过程，就对应着一个栈帧在虚拟机栈中从入栈到出栈的过程。</li>
-</ul>
-<p>Java虚拟机栈（Java Vitual Machine Stacks）也是线程私有的，他的生命周期与线程相同。<br>虚拟机栈描述的是Java方法执行的内存模型：每个方法被执行的时候都会同时创建一个栈帧 （Stack Frame）用于存储局部变量表、操作栈、动态链接、方法出口等信息。每一个方法被调用直至执行完成的过程，就对应着一个栈帧在虚拟机栈中从入栈到出栈的过程。</p>
-<p>局部变量表存放了编译器克制的各种基本数据类型（boolean、byte、char、short、int、float、long、double）、对象引用（Object reference）和字节码指令地址（returnAddress类型）。</p>
-<p>在Java虚拟机规范中，对于此区域规定了两种异常状况：</p>
-<blockquote>
-<ul>
-<li><p>如果线程请求的栈深度大于虚拟机所允许的深度，将抛出StackOverflowError异常；</p>
 </li>
-<li><p>如果虚拟机栈可以动态扩展，当扩展时无法申请到足够的内存时会抛出OutOfMemoryError异常。</p>
+<li>缩小索引列的数据<blockquote>
+<p>对于索引列数据量特别大的情况，如果全量存储会使索引变得大而且也会慢：大是因为数据量大而产生的数据在索引页中占用大量空间，对于固定页大下的InnoDB存储引用，单个数据量大造成每个页上存储的数据的数量变少，而且还会造成索引树的高度增加，对于相同数量级的数据，I/O次数会更多。</p>
+<p>前缀索引是个不错的选择，取数据开始的一部分进行索引，要考虑索引的选择性问题，选择性越高，索引效率越好，但是也可能占用的空间越大。</p>
+<p>对于BLOB、TEXT、很长的VARCHAR都需要前缀索引</p>
+<p>ADD KEY (col(num)) 创建前缀索引。</p>
+</blockquote>
+</li>
+<li><p>多列索引</p>
+<blockquote>
+<p>mysql中单列索引是针对每个需要索引的列单独设置索引，但是这种设置索引的方式对于where单条件查询来说很方便，但是我们很多时候都是需要多个索引相交操作的，这时候多个单列索引最好的情况也就只能是索引合并，索引合并涉及计算并不会统计在查询成本中。</p>
+<p>所以一般情况下，我们不会针对单列创建索引，而是根据具体使用sql创建多列索引。</p>
+<p><strong>多列索引列顺序</strong>：</p>
+<blockquote>
+<ol>
+<li>依赖于使用该索引的查询，并要符合最左前缀原则</li>
+<li>需要考虑如何更好的满足排序和分组的需要</li>
+</ol>
+</blockquote>
+<p>如果不需要考虑排序和分组时，将选择性最高的列放在索引最前面同时最好选择数据基数小的列在前面</p>
+</blockquote>
+</li>
+<li><p>聚族索引</p>
+<blockquote>
+<p>InnoDB采用的是聚族索引方式，就是按照ID生成的B+Tree结构， 完整数据存储在该树的叶子节点。<br>对于非ID的索引生成的B+Tree结构，最终叶子节点存储的是指向聚族索引的key，也就是ID，因此为了顺序的写入减少随机IO，在设计表的时候尽量对于每一张表设计一个自增主键最为ID。</p>
+</blockquote>
+</li>
+<li>非聚族索引<blockquote>
+<p>针对除了主键ID产生的B+Tree之外的索引树，都是非聚族索引。该树的最终叶子节点存储的是聚族索引的ID，也就导致如果需要查询该行所有的记录的话，需要再回源聚族索引。同时在非聚族索引的列中默认会在最后添加ID，已达到索引的key唯一性。也就是说如果创建（列1，列2）的索引，那么最终的索引形式表现为（列1，列2，ID）这样的结构</p>
+</blockquote>
+</li>
+<li>覆盖索引<blockquote>
+<p>对于非聚族索引，如果能在查询时select的列中所有的数据对存在于队列索引中，那么该查询在最终叶子节点中能找到所有的数据不需要再到聚族索引中去回源数据。这样就节省了回源的开销和IO。在EXPLAIN中可以展示为Using index</p>
+</blockquote>
+</li>
+<li><p>使用索引扫描来做排序</p>
+<blockquote>
+<p>扫描索引速度很快，只需要从一条索引记录移动到紧接着的下一条记录，但是如果索引不能覆盖查询所需的全部列，就不能不把扫描到的行回源聚族索引读取对应行记录，这个操作是一个随机I/O，速度将会很慢，所以如果能将一个索引即满足排序，又用于查找行，那么查询的速度无疑是最好的。当然只有当索引的列顺序和ORDER BY子句的顺序完全一致并且所有列的排序方向都一致时，才会使用到索引扫描排序。</p>
+<p>必须在排序子句中完全满足最左前缀，并且排序顺序一致，当然如果最左前缀的前面一项或者几项是常量的话可以不关注该项，但是该项必须出现在where子句中，这样也能满足最左前缀。</p>
+</blockquote>
 </li>
 </ul>
-</blockquote>
-<p>对于32位的jvm，默认大小为256kb, 而64位的jvm, 默认大小为512kb,可以通过-Xss设置虚拟机栈的最大值。不过如果设置过大，会影响到可创建的线程数量。</p>
-</blockquote>
-<ul>
-<li><h2 id="本地方法栈"><a href="#本地方法栈" class="headerlink" title="本地方法栈"></a>本地方法栈</h2></li>
-</ul>
-<blockquote>
-<p>本地方法栈（Native Method Stacks）与虚拟机栈所发挥的作用非常类似，区别在于虚拟机栈为虚拟机执行Java方法服务，而本地方法栈则是为虚拟机使用到的Native方法服务。</p>
-<p>在hotspot实现中，本地方法栈和虚拟机栈合二为一</p>
-</blockquote>
-<ul>
-<li><h2 id="直接内存"><a href="#直接内存" class="headerlink" title="直接内存"></a>直接内存</h2></li>
-</ul>
-<blockquote>
-<p>直接内存(Direct Memory) :不是虚拟机运行时数据区的一部分，也不是java虚拟机规范中定义的内存区域，但是有可能导OutOfMemoryError异常。<br>主要使用在NIO(new Input/Output)类，这个类基于通道(Channel)和缓存区(Buffer)的I/O方式，使用Native函数直接分配堆外内存，这样的好处是提高性能，可以预先分配一个大的内存块，使用的时候直接在上面切分，类似TLAB，不需要每次都重新在系统上分配。<br>但是这个区域是不受java堆限制的，所以可能会造成内存溢出。</p>
-</blockquote>
+<p>以上是一些自己的小看法，如果有不足之处，希望各位看客批评指正。</p>
 
       
     </div>
@@ -536,9 +518,11 @@
       
         <div class="post-tags">
           
-            <a href="/tags/java/" rel="tag"># java</a>
+            <a href="/tags/mysql/" rel="tag"># mysql</a>
           
-            <a href="/tags/jvm/" rel="tag"># jvm</a>
+            <a href="/tags/InnoDB/" rel="tag"># InnoDB</a>
+          
+            <a href="/tags/B-Tree/" rel="tag"># B+Tree</a>
           
         </div>
       
@@ -551,8 +535,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/mysql-innodb-redo-log.html" rel="next" title="mysql InnoDB redo log 分析">
-                <i class="fa fa-chevron-left"></i> mysql InnoDB redo log 分析
+              <a href="/hotspot-gc.html" rel="next" title="hotspot GC分析">
+                <i class="fa fa-chevron-left"></i> hotspot GC分析
               </a>
             
           </div>
@@ -560,10 +544,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/hotspot-classloader.html" rel="prev" title="hotspot类加载机制分析">
-                hotspot类加载机制分析 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -701,7 +681,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Java堆"><span class="nav-number">1.</span> <span class="nav-text">Java堆</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#方法区-内含运行时常量池"><span class="nav-number">2.</span> <span class="nav-text">方法区(内含运行时常量池)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#程序计数器"><span class="nav-number">3.</span> <span class="nav-text">程序计数器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Java虚拟机栈"><span class="nav-number">4.</span> <span class="nav-text">Java虚拟机栈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#本地方法栈"><span class="nav-number">5.</span> <span class="nav-text">本地方法栈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#直接内存"><span class="nav-number">6.</span> <span class="nav-text">直接内存</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#B-Tree索引"><span class="nav-number">1.</span> <span class="nav-text">B+Tree索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#索引"><span class="nav-number">2.</span> <span class="nav-text">索引</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#索引优点："><span class="nav-number">2.0.1.</span> <span class="nav-text">索引优点：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#索引缺点："><span class="nav-number">2.0.2.</span> <span class="nav-text">索引缺点：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#如何建立高性能索引？"><span class="nav-number">2.0.3.</span> <span class="nav-text">如何建立高性能索引？</span></a></li></ol></li></ol></li></ol></div>
             
 
           </div>

@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://gamesdoa.com/"/>
-  <updated>2017-06-29T14:46:57.261Z</updated>
+  <updated>2017-08-08T02:05:57.512Z</updated>
   <id>http://gamesdoa.com/</id>
   
   <author>
@@ -14,6 +14,104 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>mysql InnoDB 索引分析及优化</title>
+    <link href="http://gamesdoa.com/mysql-innodb-index.html"/>
+    <id>http://gamesdoa.com/mysql-innodb-index.html</id>
+    <published>2017-06-30T16:00:00.000Z</published>
+    <updated>2017-08-08T02:05:57.512Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="B-Tree索引"><a href="#B-Tree索引" class="headerlink" title="B+Tree索引"></a>B+Tree索引</h2><p>B+Tree的数据结构这里就不详细表述了，如果你还不了解什么是B+Tree，请参考这里<a href="https://zh.wikipedia.org/wiki/B%2B%E6%A0%91" title="B+树" target="_blank" rel="external">https://zh.wikipedia.org/wiki/B%2B%E6%A0%91</a>，如果你不想花费时间研究B+Tree，在这里也附上一张个人理解的InnoDB实现的B+Tree图，并会稍作说明。</p>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/mysql/innodb-index/B%2BTree.jpg" alt="B+Tree个人理解图"></p>
+<ul>
+<li>B+Tree是一个多路查找树，扁平结构。</li>
+<li>非叶子节点只存储指向下层节点的指针。</li>
+<li>兄弟非叶子节点之间不存在指向指针。</li>
+<li><strong>数据只存储在叶子节点上。</strong></li>
+<li>每个叶子节点都有一个指向下个叶子节点的指针(持有兄弟叶子节点的指针)。</li>
+<li>每个节点都是一个16k大小的页</li>
+<li>数据插入时需要考虑负载因子和页分裂(页数据半分或者直接新页)</li>
+<li>数据删除时需要考虑负载因子和页合并</li>
+<li>非叶子节点指向叶子节点的指针，只能指向该叶子节点的页，具体数据需要把页加载到内存中然后使用二分查找定位数据。</li>
+<li>所有的值都是顺序存储的，叶子结点中</li>
+<li>在查找的时候必须按照最左前缀原则并且不能跳列，不然无法使用索引。</li>
+<li>在查询使用索引的时候如果遇到范围查询，范围查询的列右边的列将不会被使用到索引。</li>
+</ul>
+<h2 id="索引"><a href="#索引" class="headerlink" title="索引"></a>索引</h2><h4 id="索引优点："><a href="#索引优点：" class="headerlink" title="索引优点："></a>索引优点：</h4><ul>
+<li>大大减少服务器需要扫描的数据量</li>
+<li>帮助服务器避免排序和临时表</li>
+<li>将随机I/O变为顺序I/O</li>
+</ul>
+<h4 id="索引缺点："><a href="#索引缺点：" class="headerlink" title="索引缺点："></a>索引缺点：</h4><ul>
+<li>对于小表，索引会增加额外的功能，全表扫描反而更快</li>
+<li>对于特大表，建立索引的代价太高，不适用，可以使用分区表。</li>
+</ul>
+<h4 id="如何建立高性能索引？"><a href="#如何建立高性能索引？" class="headerlink" title="如何建立高性能索引？"></a>如何建立高性能索引？</h4><ul>
+<li>索引列的干净，独立<blockquote>
+<p>索引列不能是表达式的一部分，也不能是函数的参数。使用时也只能是干净的列。</p>
+</blockquote>
+</li>
+<li>缩小索引列的数据<blockquote>
+<p>对于索引列数据量特别大的情况，如果全量存储会使索引变得大而且也会慢：大是因为数据量大而产生的数据在索引页中占用大量空间，对于固定页大下的InnoDB存储引用，单个数据量大造成每个页上存储的数据的数量变少，而且还会造成索引树的高度增加，对于相同数量级的数据，I/O次数会更多。</p>
+<p>前缀索引是个不错的选择，取数据开始的一部分进行索引，要考虑索引的选择性问题，选择性越高，索引效率越好，但是也可能占用的空间越大。</p>
+<p>对于BLOB、TEXT、很长的VARCHAR都需要前缀索引</p>
+<p>ADD KEY (col(num)) 创建前缀索引。</p>
+</blockquote>
+</li>
+<li><p>多列索引</p>
+<blockquote>
+<p>mysql中单列索引是针对每个需要索引的列单独设置索引，但是这种设置索引的方式对于where单条件查询来说很方便，但是我们很多时候都是需要多个索引相交操作的，这时候多个单列索引最好的情况也就只能是索引合并，索引合并涉及计算并不会统计在查询成本中。</p>
+<p>所以一般情况下，我们不会针对单列创建索引，而是根据具体使用sql创建多列索引。</p>
+<p><strong>多列索引列顺序</strong>：</p>
+<blockquote>
+<ol>
+<li>依赖于使用该索引的查询，并要符合最左前缀原则</li>
+<li>需要考虑如何更好的满足排序和分组的需要</li>
+</ol>
+</blockquote>
+<p>如果不需要考虑排序和分组时，将选择性最高的列放在索引最前面同时最好选择数据基数小的列在前面</p>
+</blockquote>
+</li>
+<li><p>聚族索引</p>
+<blockquote>
+<p>InnoDB采用的是聚族索引方式，就是按照ID生成的B+Tree结构， 完整数据存储在该树的叶子节点。<br>对于非ID的索引生成的B+Tree结构，最终叶子节点存储的是指向聚族索引的key，也就是ID，因此为了顺序的写入减少随机IO，在设计表的时候尽量对于每一张表设计一个自增主键最为ID。</p>
+</blockquote>
+</li>
+<li>非聚族索引<blockquote>
+<p>针对除了主键ID产生的B+Tree之外的索引树，都是非聚族索引。该树的最终叶子节点存储的是聚族索引的ID，也就导致如果需要查询该行所有的记录的话，需要再回源聚族索引。同时在非聚族索引的列中默认会在最后添加ID，已达到索引的key唯一性。也就是说如果创建（列1，列2）的索引，那么最终的索引形式表现为（列1，列2，ID）这样的结构</p>
+</blockquote>
+</li>
+<li>覆盖索引<blockquote>
+<p>对于非聚族索引，如果能在查询时select的列中所有的数据对存在于队列索引中，那么该查询在最终叶子节点中能找到所有的数据不需要再到聚族索引中去回源数据。这样就节省了回源的开销和IO。在EXPLAIN中可以展示为Using index</p>
+</blockquote>
+</li>
+<li><p>使用索引扫描来做排序</p>
+<blockquote>
+<p>扫描索引速度很快，只需要从一条索引记录移动到紧接着的下一条记录，但是如果索引不能覆盖查询所需的全部列，就不能不把扫描到的行回源聚族索引读取对应行记录，这个操作是一个随机I/O，速度将会很慢，所以如果能将一个索引即满足排序，又用于查找行，那么查询的速度无疑是最好的。当然只有当索引的列顺序和ORDER BY子句的顺序完全一致并且所有列的排序方向都一致时，才会使用到索引扫描排序。</p>
+<p>必须在排序子句中完全满足最左前缀，并且排序顺序一致，当然如果最左前缀的前面一项或者几项是常量的话可以不关注该项，但是该项必须出现在where子句中，这样也能满足最左前缀。</p>
+</blockquote>
+</li>
+</ul>
+<p>以上是一些自己的小看法，如果有不足之处，希望各位看客批评指正。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      mysql的InnoDB索引是如何实现的？为什么InnoDB的索引要遵循最左前缀的规则？什么是聚族索引，什么又是辅助索引或者非聚族索引，他们之间的关系是怎么样的？如何根据InnoDB的实现来优化我们自己的sql语句？且听小生慢慢道来。
+    
+    </summary>
+    
+      <category term="mysql" scheme="http://gamesdoa.com/categories/mysql/"/>
+    
+    
+      <category term="mysql" scheme="http://gamesdoa.com/tags/mysql/"/>
+    
+      <category term="InnoDB" scheme="http://gamesdoa.com/tags/InnoDB/"/>
+    
+      <category term="B+Tree" scheme="http://gamesdoa.com/tags/B-Tree/"/>
+    
+  </entry>
   
   <entry>
     <title>hotspot GC分析</title>
@@ -841,14 +939,18 @@ Log checkpoint at   0 11056147
   </entry>
   
   <entry>
-    <title>博客开篇</title>
+    <title>hexo 随笔</title>
     <link href="http://gamesdoa.com/hello-world.html"/>
     <id>http://gamesdoa.com/hello-world.html</id>
     <published>2017-04-30T16:00:00.000Z</published>
-    <updated>2017-06-27T08:06:55.230Z</updated>
+    <updated>2017-08-08T02:18:36.247Z</updated>
     
-    <content type="html"><![CDATA[<p>近期在整理电脑，突然发现一个问题工作这么久，平时get到很多知识点，但是都没有系统的整理出来，只是很零散的记录在各个文档中，于是乎就想啊，作为一个专业的coding怎么能没有一个自己的博客记录平时get到的知识点呢？说做就做，行动起来，顺手搭建一个自己的博客吧，把平时get到的知识点归纳总结出来，以供后续查找。</p>
-]]></content>
+    <content type="html"><![CDATA[<h2 id="本地预览hexo创建的blog"><a href="#本地预览hexo创建的blog" class="headerlink" title="本地预览hexo创建的blog"></a>本地预览hexo创建的blog</h2><pre><code>hexo s
+是简写：hexo server
+</code></pre><h2 id="发布本地文件到github库"><a href="#发布本地文件到github库" class="headerlink" title="发布本地文件到github库"></a>发布本地文件到github库</h2><pre><code>hexo clean  //清理
+hexo g         //重新构建    
+hexo d        //发布
+</code></pre>]]></content>
     
     <summary type="html">
     
@@ -864,7 +966,7 @@ Log checkpoint at   0 11056147
     <link href="http://gamesdoa.com/hexo-next-tailor-made.html"/>
     <id>http://gamesdoa.com/hexo-next-tailor-made.html</id>
     <published>2017-04-30T16:00:00.000Z</published>
-    <updated>2017-06-28T02:08:15.565Z</updated>
+    <updated>2017-08-08T02:13:40.161Z</updated>
     
     <content type="html"><![CDATA[<p>刚开始使用next主题，需要慢慢折腾，在折腾过程中，遇到的问题记录下来，做个备忘。</p>
 <h2 id="调整首页博文之间的间距"><a href="#调整首页博文之间的间距" class="headerlink" title="调整首页博文之间的间距"></a>调整首页博文之间的间距</h2><h3 id="博文间的距离"><a href="#博文间的距离" class="headerlink" title="博文间的距离"></a>博文间的距离</h3><p>想让首页的博文之间的间距缩小一些，看着紧凑些，如此处理呢？其实只需要修改themes\你的主题\source\css_variables\base.styl文件内的$post-eof-margin-top和$post-eof-margin-bottom这两个值，影响的是博文之间分割线的上下间距，如果想紧凑就调小，如果想宽松就是放大。</p>
