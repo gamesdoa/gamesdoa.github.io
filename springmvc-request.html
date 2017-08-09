@@ -95,19 +95,19 @@
 
 
 
-<meta name="description" content="一个客户端请求是怎么样被springMVC处理的？我们来简要的看一下">
+<meta name="description" content="一个客户端请求是怎么样被springMVC处理的？我们来通过几个很low的简图和高大上的源码简要分析一下">
 <meta name="keywords" content="spring MVC">
 <meta property="og:type" content="article">
-<meta property="og:title" content="springMVC 请求流程">
+<meta property="og:title" content="springMVC 请求处理流程">
 <meta property="og:url" content="http://gamesdoa.com/springmvc-request.html">
 <meta property="og:site_name" content="gamesdoa随记">
-<meta property="og:description" content="一个客户端请求是怎么样被springMVC处理的？我们来简要的看一下">
+<meta property="og:description" content="一个客户端请求是怎么样被springMVC处理的？我们来通过几个很low的简图和高大上的源码简要分析一下">
 <meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/spring/springmvc-request.jpg">
 <meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/spring/dispatcherServlet-doDispatch.jpg">
-<meta property="og:updated_time" content="2017-08-09T05:01:31.320Z">
+<meta property="og:updated_time" content="2017-08-09T06:49:48.392Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="springMVC 请求流程">
-<meta name="twitter:description" content="一个客户端请求是怎么样被springMVC处理的？我们来简要的看一下">
+<meta name="twitter:title" content="springMVC 请求处理流程">
+<meta name="twitter:description" content="一个客户端请求是怎么样被springMVC处理的？我们来通过几个很low的简图和高大上的源码简要分析一下">
 <meta name="twitter:image" content="https://github.com/gamesdoa/img0/raw/master/spring/springmvc-request.jpg">
 
 
@@ -142,7 +142,7 @@
 
 
 
-  <title>springMVC 请求流程 | gamesdoa随记</title>
+  <title>springMVC 请求处理流程 | gamesdoa随记</title>
   
 
 
@@ -314,7 +314,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">springMVC 请求流程</h1>
+          <h1 class="post-title" itemprop="name headline">springMVC 请求处理流程</h1>
         
 
         <div class="post-meta">
@@ -376,7 +376,7 @@
 
           
           
-             <span id="/springmvc-request.html" class="leancloud_visitors" data-flag-title="springMVC 请求流程">
+             <span id="/springmvc-request.html" class="leancloud_visitors" data-flag-title="springMVC 请求处理流程">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -394,7 +394,7 @@
 
           
               <div class="post-description">
-                  一个客户端请求是怎么样被springMVC处理的？我们来简要的看一下
+                  一个客户端请求是怎么样被springMVC处理的？我们来通过几个很low的简图和高大上的源码简要分析一下
               </div>
           
 
@@ -782,6 +782,10 @@ private void processDispatchResult(HttpServletRequest request, HttpServletRespon
 
           <div class="post-nav-prev post-nav-item">
             
+              <a href="/big-data-optimization.html" rel="prev" title="海量数据系统优化">
+                海量数据系统优化 <i class="fa fa-chevron-right"></i>
+              </a>
+            
           </div>
         </div>
       
@@ -854,7 +858,7 @@ private void processDispatchResult(HttpServletRequest request, HttpServletRespon
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">8</span>
+                <span class="site-state-item-count">10</span>
                 <span class="site-state-item-name">日志</span>
               </a>
             </div>
@@ -865,7 +869,7 @@ private void processDispatchResult(HttpServletRequest request, HttpServletRespon
             
             <div class="site-state-item site-state-categories">
               <a href="/categories/index.html">
-                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-count">5</span>
                 <span class="site-state-item-name">分类</span>
               </a>
             </div>
@@ -876,7 +880,7 @@ private void processDispatchResult(HttpServletRequest request, HttpServletRespon
             
             <div class="site-state-item site-state-tags">
               <a href="/tags/index.html">
-                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-count">12</span>
                 <span class="site-state-item-name">标签</span>
               </a>
             </div>
