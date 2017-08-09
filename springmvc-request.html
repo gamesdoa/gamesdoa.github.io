@@ -1,0 +1,1207 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="spring MVC" />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="gamesdoa随记" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="一个客户端请求是怎么样被springMVC处理的？我们来简要的看一下">
+<meta name="keywords" content="spring MVC">
+<meta property="og:type" content="article">
+<meta property="og:title" content="springMVC 请求流程">
+<meta property="og:url" content="http://gamesdoa.com/springmvc-request.html">
+<meta property="og:site_name" content="gamesdoa随记">
+<meta property="og:description" content="一个客户端请求是怎么样被springMVC处理的？我们来简要的看一下">
+<meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/spring/springmvc-request.jpg">
+<meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/spring/dispatcherServlet-doDispatch.jpg">
+<meta property="og:updated_time" content="2017-08-09T05:01:31.320Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="springMVC 请求流程">
+<meta name="twitter:description" content="一个客户端请求是怎么样被springMVC处理的？我们来简要的看一下">
+<meta name="twitter:image" content="https://github.com/gamesdoa/img0/raw/master/spring/springmvc-request.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'gamesdoa'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://gamesdoa.com/springmvc-request.html"/>
+
+
+
+
+
+  <title>springMVC 请求流程 | gamesdoa随记</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?8d7f22e2a4a684f7bae123e14b5cdb35";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  <div style="display: none;">
+    <script src="//s95.cnzz.com/z_stat.php?id=1262464870&web_id=1262464870" language="JavaScript"></script>
+  </div>
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">gamesdoa随记</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">边走边记</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://gamesdoa.com/springmvc-request.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gamesdoa">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="gamesdoa随记">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">springMVC 请求流程</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-07-10T00:00:00+08:00">
+                2017-07-10
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/" itemprop="url" rel="index">
+                    <span itemprop="name">spring</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a class="cloud-tie-join-count" href="/springmvc-request.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count join-count" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/springmvc-request.html" class="leancloud_visitors" data-flag-title="springMVC 请求流程">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数 </span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+              <div class="post-description">
+                  一个客户端请求是怎么样被springMVC处理的？我们来简要的看一下
+              </div>
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="首先看一个很low的简图"><a href="#首先看一个很low的简图" class="headerlink" title="首先看一个很low的简图"></a>首先看一个很low的简图</h2><p><img src="https://github.com/gamesdoa/img0/raw/master/spring/springmvc-request.jpg" alt="SpringMVC处理请求的流程"></p>
+<h2 id="描述一下这个流程"><a href="#描述一下这个流程" class="headerlink" title="描述一下这个流程"></a>描述一下这个流程</h2><ul>
+<li>用户向服务器发送请求，请求被Spring前端控制Servelt也就是DispatcherServlet捕获；</li>
+<li>DispatcherServlet首先调用doService方法，从源码看首先判断是不是include请求，如果是则对request的Attribute做个快照备份， 以便doDispatch处理完之后（如果不是异步调用且未完成）进行还原，在做完快照后还对request设置一些属性，然后调用doDispatch方法。</li>
+<li>根据对请求的URL进行解析，得到请求资源标识符（URI）。然后根据该URI，调用HandlerMapping获得该Handler配置的所有相关的对象（包括Handler对象以及Handler对象对应的拦截器），最后以HandlerExecutionChain对象的形式返回；</li>
+<li>根据获得的Handler，选择一个合适的HandlerAdapter。（附注：如果成功获得HandlerAdapter后，此时将开始执行拦截器的preHandler(…)方法）</li>
+<li>提取Request中的模型数据，填充Handler入参，开始执行Handler（Controller)。 </li>
+<li>Handler执行完成后，返回一个ModelAndView对象；</li>
+<li><p>调用processDispatchResult方法处理返回的ModelAndView对象</p>
+<blockquote>
+<p>选择一个适合的ViewResolver（必须是已经注册到Spring容器中的ViewResolver)返回一个View；<br>ViewResolver 结合Model和View，来渲染视图,然后返回到DispatcherServlet</p>
+</blockquote>
+</li>
+<li><p>将渲染结果返回给客户端。</p>
+</li>
+</ul>
+<h2 id="概念解析"><a href="#概念解析" class="headerlink" title="概念解析"></a>概念解析</h2><ul>
+<li>HandlerMapping：是用来查找Handler的，在SpringMVC中会处理很多请求，每个请求都需要一个Handler来处理，具体接收到一个请求后使用哪个Handler来处理呢？这就是HandlerMapping要做的事情。</li>
+<li>Handler：也就是处理器，它直接对应着MVC中的C也就是Controller层，它的具体表现形式有很多，可以是类，也可以是方法，如果你能想到别的表现形式也可以使用，它的类型是Object。在工程中使用@RequestMapping的所有方法都可以看成一个Handler。也就是说只要可以实际处理请求就可以是Handler。</li>
+<li><p>HandlerAdapter：是一个适配器。因为SpringMVC中的Handler可以是任意的形式，只要能处理请求就OK，但是Servlet需要的处理方法的结构却是固定的，都是以request和response为参数的方法（如doService方法）。怎么让固定的Servlet处理方法调用灵活的Handler来进行处理呢？这就是HandlerAdapter要做的事情。</p>
+<blockquote>
+<p>通俗点的解释</p>
+<p>Handler是用来干活的工具</p>
+<p>HandlerMapping用于根据需要干的活找到相应的工具</p>
+<p>HandlerAdapter是使用工具干活的人。</p>
+</blockquote>
+</li>
+<li><p>View是用来展示数据的，</p>
+</li>
+<li>ViewResolver用来查找View。<blockquote>
+<p>通俗点的解释</p>
+<p>干完活后需要写报告，写报告又需要模板</p>
+<p>View就是所需要的模板，内容就是Model里边的数据。</p>
+<p>ViewResolver就是用来选择使用哪个模板的。</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>概念解析完成之后换一种解释doDispatch方法就是：使用HandlerMapping找到干活的Handler，找到使用Handler的HandlerAdapter，让HandlerAdapter使用Handler干活，干完活后将结果写个报告通过View展示给用户。</strong></p>
+<h2 id="源码解析"><a href="#源码解析" class="headerlink" title="源码解析"></a>源码解析</h2><h3 id="doService方法源码"><a href="#doService方法源码" class="headerlink" title="doService方法源码"></a>doService方法源码</h3><pre><code>// org.springframework.web.servlet.DispatcherServlet
+@Override
+protected void doService(HttpServletRequest request, HttpServletResponse response) throws Exception {
+    if (logger.isDebugEnabled()) { //日志级别为debug，输出日志
+        String requestUri = urlPathHelper.getRequestUri(request);
+        String resumed = WebAsyncUtils.getAsyncManager(request).hasConcurrentResult() ? &quot; resumed&quot; : &quot;&quot;;
+        logger.debug(&quot;DispatcherServlet with name &apos;&quot; + getServletName() + &quot;&apos;&quot; + resumed +
+                &quot; processing &quot; + request.getMethod() + &quot; request for [&quot; + requestUri + &quot;]&quot;);
+    }
+
+    // 如果是include请求, 保存请求属性的快照
+    // 用于该include请求完成之后恢复原始属性.
+    Map&lt;String, Object&gt; attributesSnapshot = null;
+    if (WebUtils.isIncludeRequest(request)) {
+        logger.debug(&quot;Taking snapshot of request attributes before include&quot;);
+        attributesSnapshot = new HashMap&lt;String, Object&gt;();
+        Enumeration&lt;?&gt; attrNames = request.getAttributeNames();
+        while (attrNames.hasMoreElements()) {
+            String attrName = (String) attrNames.nextElement();
+            if (this.cleanupAfterInclude || attrName.startsWith(&quot;org.springframework.web.servlet&quot;)) {
+                attributesSnapshot.put(attrName, request.getAttribute(attrName));
+            }
+        }
+    }
+
+    // 处理一些request的属性，使框架对象可用于处理程序和查看对象。
+    request.setAttribute(WEB_APPLICATION_CONTEXT_ATTRIBUTE, getWebApplicationContext());
+    request.setAttribute(LOCALE_RESOLVER_ATTRIBUTE, this.localeResolver);
+    request.setAttribute(THEME_RESOLVER_ATTRIBUTE, this.themeResolver);
+    request.setAttribute(THEME_SOURCE_ATTRIBUTE, getThemeSource());
+
+    FlashMap inputFlashMap = this.flashMapManager.retrieveAndUpdate(request, response);
+    if (inputFlashMap != null) {
+        request.setAttribute(INPUT_FLASH_MAP_ATTRIBUTE, Collections.unmodifiableMap(inputFlashMap));
+    }
+    request.setAttribute(OUTPUT_FLASH_MAP_ATTRIBUTE, new FlashMap());
+    request.setAttribute(FLASH_MAP_MANAGER_ATTRIBUTE, this.flashMapManager);
+
+    try {
+        doDispatch(request, response); // 调用doDispatch方法处理流程
+    }
+    finally {
+        if (WebAsyncUtils.getAsyncManager(request).isConcurrentHandlingStarted()) {
+            return;
+        }
+        // 如果是include请求并且请求被正常处理，恢复原始属性快照。
+        if (attributesSnapshot != null) {
+            restoreAttributesAfterInclude(request, attributesSnapshot);
+        }
+    }
+}
+</code></pre><p>doService方法中首先判断是不是include请求，如果是则对request的Attribute做个快照备份， 以便doDispatch处理完之后（如果不是异步调用且未完成）进行还原，在做完快照后还对request设置了一些属性，然后调用doDispatch方法。</p>
+<h3 id="doDispatch源码"><a href="#doDispatch源码" class="headerlink" title="doDispatch源码"></a>doDispatch源码</h3><pre><code>// org.springframework.web.servlet.DispatcherServlet
+protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
+    HttpServletRequest processedRequest = request;
+    HandlerExecutionChain mappedHandler = null;
+    boolean multipartRequestParsed = false;
+
+    WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
+
+    try {
+        ModelAndView mv = null;
+        Exception dispatchException = null;
+
+        try {
+            // 检查是不是上传请求
+            processedRequest = checkMultipart(request);
+            multipartRequestParsed = processedRequest != request;
+
+            // 根据 request 找到需要处理的handler，返回的是一个HandlerExecutionChain对象
+            mappedHandler = getHandler(processedRequest, false);
+            if (mappedHandler == null || mappedHandler.getHandler() == null) {
+                noHandlerFound(processedRequest, response);
+                return;
+            }
+
+            // 根据 Handler 找到 HandlerAdapter
+            HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
+
+            // 处理 GET、HEAD 请求的Last-Modified
+            String method = request.getMethod();
+            boolean isGet = &quot;GET&quot;.equals(method);
+            if (isGet || &quot;HEAD&quot;.equals(method)) {
+                long lastModified = ha.getLastModified(request, mappedHandler.getHandler());
+                if (logger.isDebugEnabled()) {
+                    String requestUri = urlPathHelper.getRequestUri(request);
+                    logger.debug(&quot;Last-Modified value for [&quot; + requestUri + &quot;] is: &quot; + lastModified);
+                }
+                if (new ServletWebRequest(request, response).checkNotModified(lastModified) &amp;&amp; isGet) {
+                    return;
+                }
+            }
+            // 执行相应 Interceptor的preHandle
+            if (!mappedHandler.applyPreHandle(processedRequest, response)) {
+                return;
+            }
+
+            try {
+                // HandlerAdapter 使用 Handler处理请求
+                mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
+            }
+            finally {
+                // 如果需要异步处理，直接返回
+                if (asyncManager.isConcurrentHandlingStarted()) {
+                    return;
+                }
+            }
+
+            //当view为空时（比如，Handler返回值为void），根据request设置默认view
+            applyDefaultViewName(request, mv);
+            //执行相应Interceptor的postHandle
+            mappedHandler.applyPostHandle(processedRequest, response, mv);
+        }
+        catch (Exception ex) {
+            dispatchException = ex;
+        }
+        // 处理返回结果。包括处理异常、渲染页面、发出完成通知触发Interceptor的afterCompletion
+        processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);
+    }
+    catch (Exception ex) {
+        triggerAfterCompletion(processedRequest, response, mappedHandler, ex);
+    }
+    catch (Error err) {
+        triggerAfterCompletionWithError(processedRequest, response, mappedHandler, err);
+    }
+    finally {
+        // 判断是否执行异步请求
+        if (asyncManager.isConcurrentHandlingStarted()) {
+            // Instead of postHandle and afterCompletion
+            mappedHandler.applyAfterConcurrentHandlingStarted(processedRequest, response);
+            return;
+        }
+        // 清除上传请求的资源
+        if (multipartRequestParsed) {
+            cleanupMultipart(processedRequest);
+        }
+    }
+}
+</code></pre><h3 id="doDispatch方法解析"><a href="#doDispatch方法解析" class="headerlink" title="doDispatch方法解析"></a>doDispatch方法解析</h3><p>doDispatch大体可以分为两部分：处理请求和渲染页面。</p>
+<h4 id="处理请求"><a href="#处理请求" class="headerlink" title="处理请求"></a>处理请求</h4><blockquote>
+<p>开头部分先定义了几个变量，在后面要用到，如下：</p>
+<ul>
+<li>HttpServletRequestprocessedRequest：实际处理时所用的request，如果不是上传请求则直接使用接收到的request，否则封装为上传类型的request。</li>
+<li>HandlerExecutionChainmappedHandler：处理请求的处理器链（包含处理器和对应的Interceptor）。</li>
+<li>booleanmultipartRequestParsed：是不是上传请求的标志。</li>
+<li>ModelAndViewmv：封装Model和View的容器。</li>
+<li>ExceptiondispatchException：处理请求过程中抛出的异常。需要注意的是它并不包含渲染过程抛出的异常。</li>
+</ul>
+<p>doDispatch中首先检查是不是上传请求，如果是上传请求，则将request转换为Multi-partHttpServletRequest，并将multipartRequestParsed标志设置为true。其中使用到了Multipart-Resolver。</p>
+<p>然后通过getHandler方法获取Handler处理器链，其中使用到了HandlerMapping，返回值为HandlerExecutionChain类型，其中包含着与当前request相匹配的Interceptor和Handler。</p>
+</blockquote>
+<p>getHandler代码如下：</p>
+<pre><code>// org.springframework.web.servlet.DispatcherServlet
+protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
+    for (HandlerMapping hm : this.handlerMappings) {
+        if (logger.isTraceEnabled()) {
+            logger.trace(
+                    &quot;Testing handler map [&quot; + hm + &quot;] in DispatcherServlet with name &apos;&quot; + getServletName() + &quot;&apos;&quot;);
+        }
+        HandlerExecutionChain handler = hm.getHandler(request);
+        if (handler != null) {
+            return handler;
+        }
+    }
+    return null;
+}
+</code></pre><blockquote>
+<p>其中hm.getHandler()方法如下：</p>
+</blockquote>
+<pre><code>//org.springframework.web.servlet.handler.AbstractHandlerMapping
+public final HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
+    Object handler = getHandlerInternal(request);
+    if (handler == null) {
+        handler = getDefaultHandler();
+    }
+    if (handler == null) {
+        return null;
+    }
+    // Bean name or resolved handler?
+    if (handler instanceof String) {
+        String handlerName = (String) handler;
+        handler = getApplicationContext().getBean(handlerName);
+    }
+    return getHandlerExecutionChain(handler, request);
+}
+</code></pre><blockquote>
+<p>执行时先依次执行Interceptor的preHandle方法，最后执行Handler，返回的时候按相反的顺序执行Interceptor的postHandle方法。就好像要去一个地方，Interceptor是要经过的收费站，Handler是目的地，去的时候和返回的时候都要经过加油站，但两次所经过的顺序是相反的。</p>
+</blockquote>
+<p>获取到Handler之后接下来是处理GET、HEAD请求的Last-Modified。当浏览器第一次跟服务器请求资源（GET、Head请求）时，服务器在返回的请求头里面会包含一个Last-Modified的属性，代表本资源最后是什么时候修改的。在浏览器以后发送请求时会同时发送之前接收到的Last-Modified，服务器接收到带Last-Modified的请求后会用其值和自己实际资源的最后修改时间做对比，如果资源过期了则返回新的资源（同时返回新的Last-Modified），否则直接返回304状态码表示资源未过期，浏览器直接使用之前缓存的结果。</p>
+<p>接下来依次调用相应Interceptor的preHandle。</p>
+<p>处理完Interceptor的preHandle后就到了此方法最关键的地方——让HandlerAdapter使用Handler处理请求，Controller就是在这个地方执行的。这里主要使用了HandlerAdapter，具体内容在后面详细讲解。</p>
+<p>Handler处理完请求后，如果需要异步处理，则直接返回，如果不需要异步处理，当view为空时（如Handler返回值为void），设置默认view，然后执行相应Interceptor的postHandle。设置默认view的过程中使用到了ViewNameTranslator。</p>
+<h4 id="渲染页面"><a href="#渲染页面" class="headerlink" title="渲染页面"></a>渲染页面</h4><p>接下来使用processDispatchResult方法处理前面返回的结果，其中包括处理异常、渲染页面、触发Interceptor的afterCompletion方法三部分内容。</p>
+<p>doDispatch的异常处理结构:</p>
+<blockquote>
+<p>doDispatch有两层异常捕获:</p>
+<blockquote>
+<p>内层是捕获在对请求进行处理的过程中抛出的异常，</p>
+<p>外层主要是在处理渲染页面时抛出的。</p>
+<p>内层的异常，也就是执行请求处理时的异常会设置到dispatchException变量，然后在processDispatchResult方法中进行处理，</p>
+<p>外层则是处理processDispatchResult方法抛出的异常。</p>
+</blockquote>
+</blockquote>
+<p>processDispatchResult代码如下：</p>
+<pre><code>// org.springframework.web.servlet.DispatcherServlet
+private void processDispatchResult(HttpServletRequest request, HttpServletResponse response,
+        HandlerExecutionChain mappedHandler, ModelAndView mv, Exception exception) throws Exception {
+
+    boolean errorView = false;
+
+    //如果请求处理的过程中有异常抛出则处理异常
+    if (exception != null) {
+        if (exception instanceof ModelAndViewDefiningException) {
+            logger.debug(&quot;ModelAndViewDefiningException encountered&quot;, exception);
+            mv = ((ModelAndViewDefiningException) exception).getModelAndView();
+        }
+        else {
+            Object handler = (mappedHandler != null ? mappedHandler.getHandler() : null);
+            mv = processHandlerException(request, response, handler, exception);
+            errorView = (mv != null);
+        }
+    }
+
+    // 处理程序是否返回一个视图用于呈现？
+    if (mv != null &amp;&amp; !mv.wasCleared()) {
+        render(mv, request, response);
+        if (errorView) {
+            WebUtils.clearErrorRequestAttributes(request);
+        }
+    }
+    else {
+        if (logger.isDebugEnabled()) {
+            logger.debug(&quot;Null ModelAndView returned to DispatcherServlet with name &apos;&quot; + getServletName() +
+                    &quot;&apos;: assuming HandlerAdapter completed request handling&quot;);
+        }
+    }
+
+    if (WebAsyncUtils.getAsyncManager(request).isConcurrentHandlingStarted()) {
+        // 如果启动了异步处理则返回
+        return;
+    }
+
+    //发出请求处理完成的通知，触发Interceptor的afterCompletion
+    if (mappedHandler != null) {
+        mappedHandler.triggerAfterCompletion(request, response, null);
+    }
+}
+</code></pre><ul>
+<li>processDispatchResult方法解析：<blockquote>
+<p>processDispatchResult处理异常的方式其实就是将相应的错误页面设置到View，在其中的processHandlerException方法中用到了HandlerExceptionResolver。</p>
+<p>渲染页面具体在render方法中执行，render中首先对response设置了Local，过程中使用到了LocaleResolver，然后判断View如果是String类型则调用resolveViewName方法使用ViewResolver得到实际的View，最后调用View的render方法对页面进行具体渲染，渲染的过程中使用到了ThemeResolver。</p>
+<p>通过mappedHandler的triggerAfterCompletion方法触发Interceptor的afterCompletion方法，这里的Interceptor也是按反方向执行的。</p>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li>最终再返回doDispatch方法<blockquote>
+<p>在最后的finally中判断是否请求启动了异步处理，如果启动了则调用相应异步处理的拦截器，否则如果是上传请求则删除上传请求过程中产生的临时资源。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="doDispatcher的流程图"><a href="#doDispatcher的流程图" class="headerlink" title="doDispatcher的流程图"></a>doDispatcher的流程图</h3><p><img src="https://github.com/gamesdoa/img0/raw/master/spring/dispatcherServlet-doDispatch.jpg" alt="doDispatch流程图"></p>
+<ul>
+<li>左边是Interceptor相关处理方法的调用位置.</li>
+<li>右边是doDispatcher方法处理过程中所涉及的组件。</li>
+<li><strong>中间是doDispatcher的处理流程图.</strong><blockquote>
+<p>上半部分的处理请求对应着MVC中的Controller也就是C层，</p>
+<p>下半部分的processDispatchResult主要对应了MVC中的View也就是V层，</p>
+<p>M层也就是Model贯穿于整个过程中。</p>
+</blockquote>
+</li>
+</ul>
+
+      
+    </div>
+
+	<div>
+	  
+		<div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+	  
+	</div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/java/" rel="tag"># java</a>
+          
+            <a href="/tags/spring/" rel="tag"># spring</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/mysql-innodb-index.html" rel="next" title="mysql InnoDB 索引分析及优化">
+                <i class="fa fa-chevron-left"></i> mysql InnoDB 索引分析及优化
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.gif"
+               alt="gamesdoa" />
+          <p class="site-author-name" itemprop="name">gamesdoa</p>
+           
+              <p class="site-description motion-element" itemprop="description">那些爬过走过跑过飞过的坎坷道路和酸甜苦辣--是我逝去的青春</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">8</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#首先看一个很low的简图"><span class="nav-number">1.</span> <span class="nav-text">首先看一个很low的简图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#描述一下这个流程"><span class="nav-number">2.</span> <span class="nav-text">描述一下这个流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#概念解析"><span class="nav-number">3.</span> <span class="nav-text">概念解析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#源码解析"><span class="nav-number">4.</span> <span class="nav-text">源码解析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#doService方法源码"><span class="nav-number">4.1.</span> <span class="nav-text">doService方法源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#doDispatch源码"><span class="nav-number">4.2.</span> <span class="nav-text">doDispatch源码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#doDispatch方法解析"><span class="nav-number">4.3.</span> <span class="nav-text">doDispatch方法解析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#处理请求"><span class="nav-number">4.3.1.</span> <span class="nav-text">处理请求</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#渲染页面"><span class="nav-number">4.3.2.</span> <span class="nav-text">渲染页面</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#doDispatcher的流程图"><span class="nav-number">4.4.</span> <span class="nav-text">doDispatcher的流程图</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy;  2015 - 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">gamesdoa</span>
+</div>
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.1"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+    <script>
+      var cloudTieConfig = {
+        url: document.location.href, 
+        sourceId: "",
+        productKey: "370e40e6557149eba0995419f9916493",
+        target: "cloud-tie-wrapper"
+      };
+    </script>
+    <script src="https://img1.ws.126.net/f2e/tie/yun/sdk/loader.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("bJ6SDp0eeVUg2nHJ0Xb6p01w-gzGzoHsz", "wre8x8t7Hal4YpTtUgP9kGI4");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
