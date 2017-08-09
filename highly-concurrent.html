@@ -102,7 +102,7 @@
 <meta property="og:url" content="http://gamesdoa.com/highly-concurrent.html">
 <meta property="og:site_name" content="gamesdoa随记">
 <meta property="og:description" content="对于高并发系统怎么样才能把系统优化的更好？响应时间更短？速度更快？总结一些工作中的经验来看一下。">
-<meta property="og:updated_time" content="2017-08-09T10:28:02.978Z">
+<meta property="og:updated_time" content="2017-08-09T10:57:13.833Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="高并发系统优化">
 <meta name="twitter:description" content="对于高并发系统怎么样才能把系统优化的更好？响应时间更短？速度更快？总结一些工作中的经验来看一下。">
@@ -406,7 +406,9 @@
 
       
         <h2 id="高并发系统优化"><a href="#高并发系统优化" class="headerlink" title="高并发系统优化"></a>高并发系统优化</h2><p>现在社会尤其是电商互联网促销方式的出现，造成的网站面临着并发量越来越大的问题，对于这个状况如果解决不好将严重影响系统的响应速度，严重的情况下可能会造成服务器宕机等极其恶劣的影响，那么该如何解决或者说优化这个问题呢？根据实际工作中涉及到的方方面面，大体可以归结为以下几点：</p>
-<h3 id="应用和静态资源分离"><a href="#应用和静态资源分离" class="headerlink" title="应用和静态资源分离"></a>应用和静态资源分离</h3><h3 id="页面缓存"><a href="#页面缓存" class="headerlink" title="页面缓存"></a>页面缓存</h3><h3 id="集群与分布式"><a href="#集群与分布式" class="headerlink" title="集群与分布式"></a>集群与分布式</h3><h3 id="反向代理"><a href="#反向代理" class="headerlink" title="反向代理"></a>反向代理</h3><h3 id="CDN"><a href="#CDN" class="headerlink" title="CDN"></a>CDN</h3><h3 id="算法优化"><a href="#算法优化" class="headerlink" title="算法优化"></a>算法优化</h3><h3 id="软件优化"><a href="#软件优化" class="headerlink" title="软件优化"></a>软件优化</h3><h3 id="硬件优化"><a href="#硬件优化" class="headerlink" title="硬件优化"></a>硬件优化</h3>
+<h3 id="应用和静态资源分离"><a href="#应用和静态资源分离" class="headerlink" title="应用和静态资源分离"></a>应用和静态资源分离</h3><p>刚开始的时候应用和静态资源是保存在一起的，当并发量达到一定程度时就需要将静态资源保存到专门的服务器中，静态资源主要包括图片、视频、js、css和一些资源文件等，这些文件因为没有状态，所以分离比较简单，直接存放到相应的服务器就可以了，一般会使用专门的域名去访问，比如，京东的图片保存在img**.jd.com二级域名服务器上，通过不同的域名可以让浏览器直接访问资源服务器而不需要再访问应用服务器了。</p>
+<p>对于js、css和一些资源文件，可以直接放在资源服务器上，但是对于图片这种最常见的做法是建立单独的图片服务器，会使用到类似HDFS这种技术的分布式文件存储，同时一般会提供多个不同的域名，这些不同的域名都可以访问到相同的图片信息，这样的好处是：如果一个页面有很多图片的时候，对于一个域名的并发访问时有限制的，如果只是一个域名，那么加载图片就会出现排队加载的情况，提供多个域名，并发量就上去了，加载页面速度也就提供高了。</p>
+<h3 id="页面缓存"><a href="#页面缓存" class="headerlink" title="页面缓存"></a>页面缓存</h3><h3 id="集群与分布式"><a href="#集群与分布式" class="headerlink" title="集群与分布式"></a>集群与分布式</h3><h3 id="反向代理"><a href="#反向代理" class="headerlink" title="反向代理"></a>反向代理</h3><h3 id="CDN"><a href="#CDN" class="headerlink" title="CDN"></a>CDN</h3><h3 id="算法优化"><a href="#算法优化" class="headerlink" title="算法优化"></a>算法优化</h3><h3 id="软件优化"><a href="#软件优化" class="headerlink" title="软件优化"></a>软件优化</h3><h3 id="硬件优化"><a href="#硬件优化" class="headerlink" title="硬件优化"></a>硬件优化</h3>
       
     </div>
 
@@ -445,9 +447,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/优化/" rel="tag"># 优化</a>
-          
             <a href="/tags/高并发/" rel="tag"># 高并发</a>
+          
+            <a href="/tags/优化/" rel="tag"># 优化</a>
           
         </div>
       
