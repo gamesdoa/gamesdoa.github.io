@@ -103,7 +103,7 @@
 <meta property="og:site_name" content="gamesdoa随记">
 <meta property="og:description" content="spring经过IOC把XML定义转换成BeanDefinition之后，要经过哪些步骤才能把BeanDefinition转换成Bean的实例的呢？这个实例的生命周期又是如何的呢？">
 <meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/spring/spring-bean-lifecycle.jpg">
-<meta property="og:updated_time" content="2017-09-13T06:32:04.129Z">
+<meta property="og:updated_time" content="2017-09-13T06:53:39.911Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="springBean生命周期">
 <meta name="twitter:description" content="spring经过IOC把XML定义转换成BeanDefinition之后，要经过哪些步骤才能把BeanDefinition转换成Bean的实例的呢？这个实例的生命周期又是如何的呢？">
@@ -446,13 +446,19 @@ public Object postProcessBeforeInstantiation(Class beanClass,
 <p>上面这三个实现的执行顺序是固定的</p>
 </blockquote>
 </li>
-<li><p>然后执行 BeanPostProcessor 的 postProcessBeforeInitialization 方法，这时候bean已经生成了，可以根据需求在这里对对象进行修改，该方法的声明是这样的</p>
+<li><p>然后执行 <strong>BeanPostProcessor</strong> 的 postProcessBeforeInitialization 方法，这时候bean已经生成了，可以根据需求在这里对对象进行修改，该方法的声明是这样的</p>
 <pre><code>//arg0 生成出来的对象
 //arg1 生成出来的对象对应的Id/name
 public Object postProcessBeforeInitialization(Object arg0, String arg1)
         throws BeansException
-</code></pre></li>
-<li>如果bean实现了 InitializingBean 的话就执行该接口的 afterPropertiesSet 方法，实现的方法中可以直接修改bean内的信息，根据你的bean的实际情况决定。</li>
+</code></pre><blockquote>
+<p><strong>BeanPostProcessor 针对容器中的所有Bean定制初始化的过程，该接口中包含两个方法，postProcessBeforeInitialization和postProcessAfterInitialization。</strong></p>
+<p><strong>postProcessBeforeInitialization 方法在容器中的Bean初始化之前执行</strong> </p>
+<p><strong>postProcessAfterInitialization 方法在容器中的Bean初始化之后执行。</strong></p>
+</blockquote>
+</li>
+<li><p>如果bean实现了 InitializingBean 的话就执行该接口的 afterPropertiesSet 方法，该方法可以在Bean属性值设置好之后做一些操作，比如检查Bean中某个属性是否被正常的设置好值了。(存在一个问题如果实现该接口就跟spring进行了强耦合，因此spring建议使用下一个步骤这种方式来处理就是在XML定义init-method 属性的方式)</p>
+</li>
 <li>在xml声明bean的时候如果使用了 init-method 属性则调用<bean>的 init-method 属性指定的初始化方法</bean></li>
 <li><p>然后执行 BeanPostProcessor 的 postProcessAfterInitialization 方法，可以根据需求在这里对对象进行修改，该方法的声明是这样的</p>
 <pre><code>//arg0 生成出来的对象
@@ -471,10 +477,19 @@ throws BeansException
 </ul>
 <p>调回过程如下： </p>
 <ul>
-<li>如果Bean实现了 DisposableBean 接口，则调用该接口的 destroy 方法，重写后的方法可以做一些对象释放前的工作，比如释放资源啥的。</li>
+<li>如果Bean实现了 DisposableBean 接口，则调用该接口的 destroy 方法，可以在销毁Bean之前做一些操作，比如释放资源啥的。(存在一个问题如果实现该接口就跟spring进行了强耦合，因此spring建议使用下一个步骤这种方式来处理就是在XML定义 destroy-method 属性的方式)</li>
 <li>在xml声明bean的时候如果使用了 destroy-method 属性则调用<bean>的 destroy-method 属性指定的销毁方法</bean></li>
 </ul>
 <p>至此：Bean的整个生命周期的描述完毕。</p>
+<blockquote>
+<p>备注：实现*Aware接口 可以在Bean中使用Spring框架的一些对象，例如在我们这里使用过的BeanNameAware，BeanFactoryAware，ApplicationContextAware等。</p>
+<p>ApplicationContextAware: 获得ApplicationContext对象,可以用来获取所有Bean definition的名字。</p>
+<p>BeanFactoryAware:获得BeanFactory对象，可以用来检测Bean的作用域。</p>
+<p>BeanNameAware:获得Bean在配置文件中定义的名字。</p>
+<p>ResourceLoaderAware:获得ResourceLoader对象，可以获得classpath中某个文件。</p>
+<p>ServletContextAware:在一个MVC应用中可以获取ServletContext对象，可以读取context中的参数。</p>
+<p>ServletConfigAware在一个MVC应用中可以获取ServletConfig对象，可以读取config中的参数。</p>
+</blockquote>
 <h1 id="代码演示Bean生命周期"><a href="#代码演示Bean生命周期" class="headerlink" title="代码演示Bean生命周期"></a>代码演示Bean生命周期</h1><p>在代码展示的时候我们先声明一个简单的SpringBean ， 为了演示需要，我们让这个Bean尽可能的实现所有初始化以及销毁时需要经过的接口类，在Bean声明之后我们顺着bean生命周期的流程图上的路线，把经过的各个接口都实现一下，以便我们查看效果。</p>
 <h2 id="Spring-Bean"><a href="#Spring-Bean" class="headerlink" title="Spring Bean"></a>Spring Bean</h2><p>首先来声明一个简单的 Spring bean，代码如下：</p>
 <pre><code>package com.gamesdoa.test.spring.lifecycle;
