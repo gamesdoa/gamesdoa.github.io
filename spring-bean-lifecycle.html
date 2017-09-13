@@ -1,0 +1,1290 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="spring bean 生命周期" />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="gamesdoa随记" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.1" />
+
+
+
+
+
+
+<meta name="description" content="spring经过IOC把XML定义转换成BeanDefinition之后，要经过哪些步骤才能把BeanDefinition转换成Bean的实例的呢？这个实例的生命周期又是如何的呢？">
+<meta name="keywords" content="spring bean 生命周期">
+<meta property="og:type" content="article">
+<meta property="og:title" content="springBean生命周期">
+<meta property="og:url" content="http://gamesdoa.com/spring-bean-lifecycle.html">
+<meta property="og:site_name" content="gamesdoa随记">
+<meta property="og:description" content="spring经过IOC把XML定义转换成BeanDefinition之后，要经过哪些步骤才能把BeanDefinition转换成Bean的实例的呢？这个实例的生命周期又是如何的呢？">
+<meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/spring/spring-bean-lifecycle.jpg">
+<meta property="og:updated_time" content="2017-09-13T06:32:04.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="springBean生命周期">
+<meta name="twitter:description" content="spring经过IOC把XML定义转换成BeanDefinition之后，要经过哪些步骤才能把BeanDefinition转换成Bean的实例的呢？这个实例的生命周期又是如何的呢？">
+<meta name="twitter:image" content="https://github.com/gamesdoa/img0/raw/master/spring/spring-bean-lifecycle.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always","offset":12,"offset_float":0,"b2t":false,"scrollpercent":false},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'gamesdoa'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://gamesdoa.com/spring-bean-lifecycle.html"/>
+
+
+
+
+
+  <title>springBean生命周期 | gamesdoa随记</title>
+  
+
+
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?8d7f22e2a4a684f7bae123e14b5cdb35";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  <div style="display: none;">
+    <script src="//s95.cnzz.com/z_stat.php?id=1262464870&web_id=1262464870" language="JavaScript"></script>
+  </div>
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">gamesdoa随记</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">边走边记</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+    <link itemprop="mainEntityOfPage" href="http://gamesdoa.com/spring-bean-lifecycle.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="gamesdoa">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="gamesdoa随记">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">springBean生命周期</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-08-15T00:00:00+08:00">
+                2017-08-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/" itemprop="url" rel="index">
+                    <span itemprop="name">spring</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a class="cloud-tie-join-count" href="/spring-bean-lifecycle.html#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count join-count" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/spring-bean-lifecycle.html" class="leancloud_visitors" data-flag-title="springBean生命周期">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数 </span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+              <div class="post-description">
+                  spring经过IOC把XML定义转换成BeanDefinition之后，要经过哪些步骤才能把BeanDefinition转换成Bean的实例的呢？这个实例的生命周期又是如何的呢？
+              </div>
+          
+
+        </div>
+      </header>
+    
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="Bean生命周期流程图"><a href="#Bean生命周期流程图" class="headerlink" title="Bean生命周期流程图"></a>Bean生命周期流程图</h1><p>先看一个本博主理解的生命周期的流程图：<br><img src="https://github.com/gamesdoa/img0/raw/master/spring/spring-bean-lifecycle.jpg" alt="springbean生命周期"></p>
+<h1 id="文字描述Bean生命周期"><a href="#文字描述Bean生命周期" class="headerlink" title="文字描述Bean生命周期"></a>文字描述Bean生命周期</h1><h2 id="Spring容器启动"><a href="#Spring容器启动" class="headerlink" title="Spring容器启动"></a>Spring容器启动</h2><ul>
+<li>首先会使用IOC的一套机制把定义的Bean信息加载并转化成BeanDefinition存储（如果你不了解这个过程的话可以看这里<a href="http://gamesdoa.com/spring-ioc.html" title="spring IOC 解析">http://gamesdoa.com/spring-ioc.html</a>)</li>
+<li><p>当存储为BeanDefinition之后如果存在<strong>BeanFactoryPostProcessor</strong>的实现类的话就会先实例化该实现，并执行该实例的<em>postProcessBeanFactory</em>方法，该方法生命是这样的：</p>
+<pre><code>public void postProcessBeanFactory(ConfigurableListableBeanFactory arg0) throws BeansException
+</code></pre><blockquote>
+<p>该方法可以使用arg0.getBeanDefinition(“beanName”) 获取beanName对应的BeanDefinition信息，既然获取到了BeanDefinition那么就可以做很多操作了，比如修改scope，修改懒加载，等等，具体可以做哪些操作可以参看<strong>org.springframework.beans.factory.config.BeanDefinition</strong>，当然也可以直接修改属性值，使用如下代码：</p>
+<p><em>beanDefinition.getPropertyValues().addPropertyValue(“propertyName”, “propertyValue”);</em> </p>
+<p>这里相当于直接修改XML文件内的设值。针对BeanDefinition属性信息的更多操作参看<strong>org.springframework.beans.MutablePropertyValues</strong></p>
+</blockquote>
+</li>
+<li><p>处理完BeanDefinition之后，如果存在<strong>BeanPostProcessor</strong>的实现的话会接着实例化该接口</p>
+</li>
+<li><p>接下来如果存在<strong>InstantiationAwareBeanPostProcessorAdapter</strong>的实现的话会接着实例化该接口</p>
+</li>
+<li><p>判断该 BeanDefinition 的scope属性</p>
+<ul>
+<li><p>如果scope属性是prototype，那么直接略过，将初始化的时间交给业务程序，只有在业务程序调用该bean的时候才会再进行初始化过程</p>
+</li>
+<li><p>如果scope属性是singleton，并且不是懒加载的话，将立刻开始初始化过程</p>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="Bean初始化过程"><a href="#Bean初始化过程" class="headerlink" title="Bean初始化过程"></a>Bean初始化过程</h2><ul>
+<li><p>首先执行 InstantiationAwareBeanPostProcessorAdapter 的 postProcessBeforeInstantiation 方法，这个执行将会在实例化bean之前调用，如果有需要的话可以在这里处理一些信息，比如安全验证什么的，该方法的声明如下：</p>
+<pre><code>// beanClass 需要实例化的Bean的Class
+// beanName 配置的该Bean的id/name
+public Object postProcessBeforeInstantiation(Class beanClass,
+                                     String beanName) throws BeansException
+</code></pre></li>
+<li>接下来就调用bean的构造器</li>
+<li>然后执行 InstantiationAwareBeanPostProcessorAdapter 的 postProcessPropertyValues 方法，这个执行就是将 BeanDefinition 中的属性值设置给生成的实例对应的属性。</li>
+<li>如果bean实现了 BeanNameAware 的话就执行该接口的 setBeanName 方法</li>
+<li>如果bean实现了 BeanFactoryAware 的话就执行该接口的 setBeanFactory 方法</li>
+<li>如果bean实现了 ApplicationContextAware 的话就执行该接口的 setApplicationContext 方法<blockquote>
+<p>上面这三个实现的执行顺序是固定的</p>
+</blockquote>
+</li>
+<li><p>然后执行 BeanPostProcessor 的 postProcessBeforeInitialization 方法，这时候bean已经生成了，可以根据需求在这里对对象进行修改，该方法的声明是这样的</p>
+<pre><code>//arg0 生成出来的对象
+//arg1 生成出来的对象对应的Id/name
+public Object postProcessBeforeInitialization(Object arg0, String arg1)
+        throws BeansException
+</code></pre></li>
+<li>如果bean实现了 InitializingBean 的话就执行该接口的 afterPropertiesSet 方法，实现的方法中可以直接修改bean内的信息，根据你的bean的实际情况决定。</li>
+<li>在xml声明bean的时候如果使用了 init-method 属性则调用<bean>的 init-method 属性指定的初始化方法</bean></li>
+<li><p>然后执行 BeanPostProcessor 的 postProcessAfterInitialization 方法，可以根据需求在这里对对象进行修改，该方法的声明是这样的</p>
+<pre><code>//arg0 生成出来的对象
+//arg1 生成出来的对象对应的Id/name
+public Object postProcessAfterInitialization(Object arg0, String arg1)
+        throws BeansException
+</code></pre></li>
+<li><p>首先执行 InstantiationAwareBeanPostProcessorAdapter 的 postProcessAfterInitialization 方法，这个执行将会在实例化Bean之后调用，如果有需要的话可以在这里处理一些信息，比如安全验证什么的，该方法的声明如下：</p>
+<pre><code>public Object postProcessAfterInitialization(Object bean, String beanName)
+throws BeansException
+</code></pre></li>
+</ul>
+<h2 id="Bean销毁过程"><a href="#Bean销毁过程" class="headerlink" title="Bean销毁过程"></a>Bean销毁过程</h2><ul>
+<li>如果scope属性是prototype，则在GC时销毁该实例，</li>
+<li>如果scope属性是singleton，则需要在容器销毁时才销毁该实例</li>
+</ul>
+<p>调回过程如下： </p>
+<ul>
+<li>如果Bean实现了 DisposableBean 接口，则调用该接口的 destroy 方法，重写后的方法可以做一些对象释放前的工作，比如释放资源啥的。</li>
+<li>在xml声明bean的时候如果使用了 destroy-method 属性则调用<bean>的 destroy-method 属性指定的销毁方法</bean></li>
+</ul>
+<p>至此：Bean的整个生命周期的描述完毕。</p>
+<h1 id="代码演示Bean生命周期"><a href="#代码演示Bean生命周期" class="headerlink" title="代码演示Bean生命周期"></a>代码演示Bean生命周期</h1><p>在代码展示的时候我们先声明一个简单的SpringBean ， 为了演示需要，我们让这个Bean尽可能的实现所有初始化以及销毁时需要经过的接口类，在Bean声明之后我们顺着bean生命周期的流程图上的路线，把经过的各个接口都实现一下，以便我们查看效果。</p>
+<h2 id="Spring-Bean"><a href="#Spring-Bean" class="headerlink" title="Spring Bean"></a>Spring Bean</h2><p>首先来声明一个简单的 Spring bean，代码如下：</p>
+<pre><code>package com.gamesdoa.test.spring.lifecycle;
+
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.*;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+
+/**
+ * Created by gamesdoa
+ */
+public class Product implements BeanFactoryAware, BeanNameAware,
+        ApplicationContextAware, InitializingBean, DisposableBean {
+
+    private String name;
+    private String description;
+    private int stock;
+
+    private BeanFactory beanFactory;
+    private String beanName;
+    private ApplicationContext applicationContext;
+
+    public Product() {
+        System.out.println(&quot;4、  【构造器】调用Product的构造器&quot;);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        System.out.println(&quot;4、  【注入属性】注入属性name&quot;);
+        this.name = name;
+    }
+
+    public int getStock() {
+        return stock;
+    }
+
+    public void setStock(int stock) {
+        System.out.println(&quot;4、  【注入属性】注入属性stock&quot;);
+        this.stock = stock;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        System.out.println(&quot;4、  【注入属性】注入属性description&quot;);
+        this.description = description;
+    }
+
+    @Override
+    public String toString() {
+        return &quot;4、  Product [name=&quot; + name + &quot;, description=&quot;
+                + description + &quot;, stock=&quot; + stock + &quot;]&quot;;
+    }
+
+    // 覆盖实现BeanFactoryAware接口方法
+    @Override
+    public void setBeanFactory(BeanFactory arg0) throws BeansException {
+        System.out.println(&quot;4、  【BeanFactoryAware接口】调用BeanFactoryAware.setBeanFactory()&quot;);
+        this.beanFactory = arg0;
+    }
+
+    // 覆盖实现BeanNameAware接口方法
+    @Override
+    public void setBeanName(String arg0) {
+        System.out.println(&quot;4、  【BeanNameAware接口】调用BeanNameAware.setBeanName()&quot;);
+        this.beanName = arg0;
+    }
+
+    // 覆盖实现ApplicationContextAware接口方法
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        System.out.println(&quot;4、  【ApplicationContextAware接口】调用ApplicationContextAware.setApplicationContext()&quot;);
+        this.applicationContext = applicationContext;
+    }
+
+    // 覆盖实现InitializingBean接口方法
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        System.out.println(&quot;4、  【InitializingBean接口】调用InitializingBean.afterPropertiesSet()&quot;);
+    }
+
+    // 覆盖实现DiposibleBean接口方法
+    @Override
+    public void destroy() throws Exception {
+        System.out.println(&quot;4、  【DiposibleBean接口】调用DiposibleBean.destory()&quot;);
+    }
+
+    // 通过XML配置的Bean的init-method属性指定的初始化方法
+    public void myInit() {
+        System.out.println(&quot;4、  【init-method】调用&lt;bean&gt;的init-method属性指定的初始化方法&quot;);
+    }
+
+    // 通过XML配置的Bean的destroy-method属性指定的销毁方法
+    public void myDestory() {
+        System.out.println(&quot;4、  【destroy-method】调用&lt;bean&gt;的destroy-method属性指定的销毁方法&quot;);
+    }
+}
+</code></pre><h2 id="BeanFactoryPostProcessor"><a href="#BeanFactoryPostProcessor" class="headerlink" title="BeanFactoryPostProcessor"></a>BeanFactoryPostProcessor</h2><p>接下来我们看一下经过的第一个接口：BeanFactoryPostProcessor ， 实现如下：</p>
+<pre><code>package com.gamesdoa.test.spring.lifecycle;
+
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+
+/**
+ * Created by gamesdoa.
+ */
+public class MyBeanFactoryPostProcessor implements BeanFactoryPostProcessor {
+
+    public MyBeanFactoryPostProcessor() {
+        super();
+        System.out.println(&quot;1、  我是BeanFactoryPostProcessor接口实现类的构造器！！&quot;);
+    }
+
+    @Override
+    public void postProcessBeanFactory(ConfigurableListableBeanFactory arg0) throws BeansException {
+        System.out.println(&quot;1、  调用 BeanFactoryPostProcessor 接口的 postProcessBeanFactory 方法&quot;);
+        BeanDefinition bd = arg0.getBeanDefinition(&quot;product&quot;);
+        bd.getPropertyValues().addPropertyValue(&quot;stock&quot;, &quot;2000&quot;);
+    }
+}
+</code></pre><h2 id="BeanPostProcessor"><a href="#BeanPostProcessor" class="headerlink" title="BeanPostProcessor"></a>BeanPostProcessor</h2><p>接下来是经过的第二个接口： BeanPostProcessor ， 实现如下：</p>
+<pre><code>package com.gamesdoa.test.spring.lifecycle;
+
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanPostProcessor;
+
+/**
+ * Created by gamesdoa.
+ */
+public class MyBeanPostProcessor implements BeanPostProcessor {
+
+    public MyBeanPostProcessor() {
+        super();
+        System.out.println(&quot;2、  我是 BeanPostProcessor 接口实现类的构造器！！&quot;);
+    }
+
+    @Override
+    public Object postProcessAfterInitialization(Object arg0, String arg1) throws BeansException {
+        System.out.println(&quot;2、  调用 BeanPostProcessor 接口的 postProcessAfterInitialization 方法对属性进行更改！&quot;);
+        return arg0;
+    }
+
+    @Override
+    public Object postProcessBeforeInitialization(Object arg0, String arg1) throws BeansException {
+        System.out.println(&quot;2、  调用 BeanPostProcessor 接口的 postProcessBeforeInitialization 方法对属性进行更改！&quot;);
+        return arg0;
+    }
+}
+</code></pre><h2 id="InstantiationAwareBeanPostProcessorAdapter"><a href="#InstantiationAwareBeanPostProcessorAdapter" class="headerlink" title="InstantiationAwareBeanPostProcessorAdapter"></a>InstantiationAwareBeanPostProcessorAdapter</h2><p>接下来是第三个接口： InstantiationAwareBeanPostProcessorAdapter ，实现如下：</p>
+<pre><code>package com.gamesdoa.test.spring.lifecycle;
+
+import org.springframework.beans.BeansException;
+import org.springframework.beans.PropertyValues;
+import org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessorAdapter;
+
+import java.beans.PropertyDescriptor;
+
+/**
+ * Created by gamesdoa.
+ */
+public class MyInstantiationAwareBeanPostProcessor extends
+        InstantiationAwareBeanPostProcessorAdapter {
+
+    public MyInstantiationAwareBeanPostProcessor() {
+        super();
+        System.out.println(&quot;3、  我是InstantiationAwareBeanPostProcessorAdapter接口实现类的构造器！！&quot;);
+    }
+
+    // 接口方法、实例化Bean之前调用
+    @Override
+    public Object postProcessBeforeInstantiation(Class beanClass,String beanName) throws BeansException {
+        System.out.println(&quot;3、  调用 InstantiationAwareBeanPostProcessor 接口的 postProcessBeforeInstantiation 方法&quot;);
+        return null;
+    }
+
+    // 接口方法、实例化Bean之后调用
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        System.out.println(&quot;3、  调用 InstantiationAwareBeanPostProcessor 接口的 postProcessAfterInitialization 方法&quot;);
+        return bean;
+    }
+
+    // 接口方法、设置属性时调用
+    @Override
+    public PropertyValues postProcessPropertyValues(PropertyValues pvs,PropertyDescriptor[] pds, 
+                                                    Object bean, String beanName) throws BeansException {
+        System.out.println(&quot;3、  调用 InstantiationAwareBeanPostProcessor 接口的 postProcessPropertyValues 方法&quot;);
+        return pvs;
+    }
+}
+</code></pre><h2 id="定义配置文件"><a href="#定义配置文件" class="headerlink" title="定义配置文件"></a>定义配置文件</h2><p>配置文件如下spring-beans.xml：</p>
+<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
+       xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+       xmlns:p=&quot;http://www.springframework.org/schema/p&quot;
+       xsi:schemaLocation=&quot;http://www.springframework.org/schema/beans
+            http://www.springframework.org/schema/beans/spring-beans-3.2.xsd&quot;&gt;
+
+    &lt;bean id=&quot;beanPostProcessor&quot; class=&quot;com.gamesdoa.test.spring.lifecycle.MyBeanPostProcessor&quot;/&gt;
+
+    &lt;bean id=&quot;instantiationAwareBeanPostProcessor&quot;
+          class=&quot;com.gamesdoa.test.spring.lifecycle.MyInstantiationAwareBeanPostProcessor&quot;/&gt;
+
+    &lt;bean id=&quot;beanFactoryPostProcessor&quot;
+          class=&quot;com.gamesdoa.test.spring.lifecycle.MyBeanFactoryPostProcessor&quot;/&gt;
+
+    &lt;bean id=&quot;product&quot; class=&quot;com.gamesdoa.test.spring.lifecycle.Product&quot; init-method=&quot;myInit&quot;
+          destroy-method=&quot;myDestory&quot; scope=&quot;singleton&quot; p:name=&quot;iphone 100&quot; p:description=&quot;我是未来的iphone 100&quot;
+          p:stock=&quot;900&quot; /&gt;
+&lt;/beans&gt;
+</code></pre><h2 id="测试类"><a href="#测试类" class="headerlink" title="测试类"></a>测试类</h2><pre><code>package com.gamesdoa.test.spring.lifecycle;
+
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+/**
+ * Created by gamesdoa.
+ */
+public class BeanLifeCycleTest {
+
+    public static void main(String[] args) {
+        System.out.println(&quot;0、  现在开始初始化容器&quot;);
+        ApplicationContext factory = new ClassPathXmlApplicationContext(&quot;spring/spring-beans.xml&quot;);
+        System.out.println(&quot;0、  容器初始化成功&quot;);
+        //得到Product，并使用
+        Product product = factory.getBean(&quot;product&quot;,Product.class);
+        System.out.println(&quot;0、  hashCode : &quot; + product.hashCode());
+        System.out.println(product);
+
+        product = factory.getBean(&quot;product&quot;,Product.class);
+        System.out.println(&quot;0、  hashCode : &quot; + product.hashCode());
+        System.out.println(product);
+
+        System.out.println(&quot;0、  现在开始关闭容器！&quot;);
+        ((ClassPathXmlApplicationContext)factory).registerShutdownHook();
+    }
+}
+</code></pre><h2 id="运行结果"><a href="#运行结果" class="headerlink" title="运行结果"></a>运行结果</h2><p>这里我们分别看一下scope 分别为 singleton 和 prototype 时的运行结果：</p>
+<h3 id="singleton-的运行结果"><a href="#singleton-的运行结果" class="headerlink" title="singleton 的运行结果"></a>singleton 的运行结果</h3><pre><code>0、  现在开始初始化容器
+1、  我是BeanFactoryPostProcessor接口实现类的构造器！！
+1、  调用 BeanFactoryPostProcessor 接口的 postProcessBeanFactory 方法
+2、  我是 BeanPostProcessor 接口实现类的构造器！！
+3、  我是InstantiationAwareBeanPostProcessorAdapter接口实现类的构造器！！
+
+3、  调用 InstantiationAwareBeanPostProcessor 接口的 postProcessBeforeInstantiation 方法
+4、  【构造器】调用Product的构造器
+3、  调用 InstantiationAwareBeanPostProcessor 接口的 postProcessPropertyValues 方法
+4、  【注入属性】注入属性description
+4、  【注入属性】注入属性name
+4、  【注入属性】注入属性stock
+4、  【BeanNameAware接口】调用BeanNameAware.setBeanName()
+4、  【BeanFactoryAware接口】调用BeanFactoryAware.setBeanFactory()
+4、  【ApplicationContextAware接口】调用ApplicationContextAware.setApplicationContext()
+2、  调用 BeanPostProcessor 接口的 postProcessBeforeInitialization 方法对属性进行更改！
+4、  【InitializingBean接口】调用InitializingBean.afterPropertiesSet()
+4、  【init-method】调用&lt;bean&gt;的init-method属性指定的初始化方法
+2、  调用 BeanPostProcessor 接口的 postProcessAfterInitialization 方法对属性进行更改！
+3、  调用 InstantiationAwareBeanPostProcessor 接口的 postProcessAfterInitialization 方法
+
+0、  容器初始化成功
+
+0、  hashCode : 1345604737
+4、  Product [name=iphone 100, description=我是未来的iphone 100, stock=2000]
+0、  hashCode : 1345604737
+4、  Product [name=iphone 100, description=我是未来的iphone 100, stock=2000]
+
+0、  现在开始关闭容器！
+4、  【DiposibleBean接口】调用DiposibleBean.destory()
+4、  【destroy-method】调用&lt;bean&gt;的destroy-method属性指定的销毁方法
+</code></pre><h3 id="prototype的运行结果"><a href="#prototype的运行结果" class="headerlink" title="prototype的运行结果"></a>prototype的运行结果</h3><pre><code>0、  现在开始初始化容器
+1、  我是BeanFactoryPostProcessor接口实现类的构造器！！
+1、  调用 BeanFactoryPostProcessor 接口的 postProcessBeanFactory 方法
+2、  我是 BeanPostProcessor 接口实现类的构造器！！
+3、  我是InstantiationAwareBeanPostProcessorAdapter接口实现类的构造器！！
+0、  容器初始化成功
+3、  调用 InstantiationAwareBeanPostProcessor 接口的 postProcessBeforeInstantiation 方法
+
+4、  【构造器】调用Product的构造器
+3、  调用 InstantiationAwareBeanPostProcessor 接口的 postProcessPropertyValues 方法
+4、  【注入属性】注入属性description
+4、  【注入属性】注入属性name
+4、  【注入属性】注入属性stock
+4、  【BeanNameAware接口】调用BeanNameAware.setBeanName()
+4、  【BeanFactoryAware接口】调用BeanFactoryAware.setBeanFactory()
+4、  【ApplicationContextAware接口】调用ApplicationContextAware.setApplicationContext()
+2、  调用 BeanPostProcessor 接口的 postProcessBeforeInitialization 方法对属性进行更改！
+4、  【InitializingBean接口】调用InitializingBean.afterPropertiesSet()
+4、  【init-method】调用&lt;bean&gt;的init-method属性指定的初始化方法
+2、  调用 BeanPostProcessor 接口的 postProcessAfterInitialization 方法对属性进行更改！
+3、  调用 InstantiationAwareBeanPostProcessor 接口的 postProcessAfterInitialization 方法
+
+0、  hashCode : 1431641429
+4、  Product [name=iphone 100, description=我是未来的iphone 100, stock=2000]
+
+4、  【构造器】调用Product的构造器
+3、  调用 InstantiationAwareBeanPostProcessor 接口的 postProcessPropertyValues 方法
+4、  【注入属性】注入属性description
+4、  【注入属性】注入属性name
+4、  【注入属性】注入属性stock
+4、  【BeanNameAware接口】调用BeanNameAware.setBeanName()
+4、  【BeanFactoryAware接口】调用BeanFactoryAware.setBeanFactory()
+4、  【ApplicationContextAware接口】调用ApplicationContextAware.setApplicationContext()
+2、  调用 BeanPostProcessor 接口的 postProcessBeforeInitialization 方法对属性进行更改！
+4、  【InitializingBean接口】调用InitializingBean.afterPropertiesSet()
+4、  【init-method】调用&lt;bean&gt;的init-method属性指定的初始化方法
+2、  调用 BeanPostProcessor 接口的 postProcessAfterInitialization 方法对属性进行更改！
+3、  调用 InstantiationAwareBeanPostProcessor 接口的 postProcessAfterInitialization 方法
+
+0、  hashCode : 1190716215
+4、  Product [name=iphone 100, description=我是未来的iphone 100, stock=2000]
+
+0、  现在开始关闭容器！
+</code></pre><h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>为了能够直观的看出 scope 分别为 singleton 和 prototype 的区别，我这里专门使用了两次该Bean，我们可以看出</p>
+<ul>
+<li>当 scope 配置为 singleton 的时候，该bean的初始化是在容器启动时就实例化好了的，在业务程序中使用的时候每次获取的对象也都是同一个，你可以看到两次获取的 hashCode 是一致的。</li>
+<li>当 scope 配置为 prototype 的时候，该bean的初始化是在业务程序使用该对象的时候即时初始化的，每次调用该Bean的时候都会重新初始化该对象，你可以看到两次获取的 hashCode 是不一致的。</li>
+</ul>
+<h1 id="结束语"><a href="#结束语" class="headerlink" title="结束语"></a>结束语</h1><p>至此，spring bean的生命周期我们就解析完了，该篇中我们先给出了流程图，然后又采用文字进行了描述，最后使用代码给出了生命周期的演示。</p>
+
+      
+    </div>
+
+	<div>
+	  
+		<div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+	  
+	</div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/spring/" rel="tag"># spring</a>
+          
+            <a href="/tags/bean生命周期/" rel="tag"># bean生命周期</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/spring-aop.html" rel="next" title="spring AOP解析">
+                <i class="fa fa-chevron-left"></i> spring AOP解析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.gif"
+               alt="gamesdoa" />
+          <p class="site-author-name" itemprop="name">gamesdoa</p>
+           
+              <p class="site-description motion-element" itemprop="description">那些爬过走过跑过飞过的坎坷道路和酸甜苦辣--是我逝去的青春</p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">13</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-categories">
+              <a href="/categories/index.html">
+                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">15</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Bean生命周期流程图"><span class="nav-number">1.</span> <span class="nav-text">Bean生命周期流程图</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#文字描述Bean生命周期"><span class="nav-number">2.</span> <span class="nav-text">文字描述Bean生命周期</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Spring容器启动"><span class="nav-number">2.1.</span> <span class="nav-text">Spring容器启动</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean初始化过程"><span class="nav-number">2.2.</span> <span class="nav-text">Bean初始化过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean销毁过程"><span class="nav-number">2.3.</span> <span class="nav-text">Bean销毁过程</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#代码演示Bean生命周期"><span class="nav-number">3.</span> <span class="nav-text">代码演示Bean生命周期</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Spring-Bean"><span class="nav-number">3.1.</span> <span class="nav-text">Spring Bean</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BeanFactoryPostProcessor"><span class="nav-number">3.2.</span> <span class="nav-text">BeanFactoryPostProcessor</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BeanPostProcessor"><span class="nav-number">3.3.</span> <span class="nav-text">BeanPostProcessor</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#InstantiationAwareBeanPostProcessorAdapter"><span class="nav-number">3.4.</span> <span class="nav-text">InstantiationAwareBeanPostProcessorAdapter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#定义配置文件"><span class="nav-number">3.5.</span> <span class="nav-text">定义配置文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#测试类"><span class="nav-number">3.6.</span> <span class="nav-text">测试类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#运行结果"><span class="nav-number">3.7.</span> <span class="nav-text">运行结果</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#singleton-的运行结果"><span class="nav-number">3.7.1.</span> <span class="nav-text">singleton 的运行结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#prototype的运行结果"><span class="nav-number">3.7.2.</span> <span class="nav-text">prototype的运行结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#总结"><span class="nav-number">3.7.3.</span> <span class="nav-text">总结</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#结束语"><span class="nav-number">4.</span> <span class="nav-text">结束语</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy;  2015 - 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">gamesdoa</span>
+</div>
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.1"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.1"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.1"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.1"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.1"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+    <script>
+      var cloudTieConfig = {
+        url: document.location.href, 
+        sourceId: "",
+        productKey: "370e40e6557149eba0995419f9916493",
+        target: "cloud-tie-wrapper"
+      };
+    </script>
+    <script src="https://img1.ws.126.net/f2e/tie/yun/sdk/loader.js"></script>
+  
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("bJ6SDp0eeVUg2nHJ0Xb6p01w-gzGzoHsz", "wre8x8t7Hal4YpTtUgP9kGI4");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
