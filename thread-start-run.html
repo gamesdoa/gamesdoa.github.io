@@ -77,7 +77,7 @@
 <link href="/css/main.css?v=5.1.1" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="高并发,系统优化" />
+  <meta name="keywords" content="spring Thread 多线程" />
 
 
 
@@ -95,19 +95,19 @@
 
 
 
-<meta name="description" content="对于高并发系统怎么样才能把系统优化的更好？响应时间更短？速度更快？总结一些工作中的经验来看一下。">
-<meta name="keywords" content="高并发,系统优化">
+<meta name="description" content="工作使用java多年，没有分清java中的线程在run和start方法的的区别，通过API和一个例子来看一下到底他们有什么区别">
+<meta name="keywords" content="spring Thread 多线程">
 <meta property="og:type" content="article">
-<meta property="og:title" content="高并发系统优化">
-<meta property="og:url" content="http://gamesdoa.com/highly-concurrent.html">
+<meta property="og:title" content="Thread中start和run方法的区别">
+<meta property="og:url" content="http://gamesdoa.com/thread-start-run.html">
 <meta property="og:site_name" content="gamesdoa随记">
-<meta property="og:description" content="对于高并发系统怎么样才能把系统优化的更好？响应时间更短？速度更快？总结一些工作中的经验来看一下。">
-<meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/optimization/reverse-proxy.jpg">
-<meta property="og:updated_time" content="2017-08-22T04:31:24.998Z">
+<meta property="og:description" content="工作使用java多年，没有分清java中的线程在run和start方法的的区别，通过API和一个例子来看一下到底他们有什么区别">
+<meta property="og:image" content="https://github.com/gamesdoa/img0/raw/master/java/thread/thread-state.jpg">
+<meta property="og:updated_time" content="2017-09-28T07:15:17.054Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="高并发系统优化">
-<meta name="twitter:description" content="对于高并发系统怎么样才能把系统优化的更好？响应时间更短？速度更快？总结一些工作中的经验来看一下。">
-<meta name="twitter:image" content="https://github.com/gamesdoa/img0/raw/master/optimization/reverse-proxy.jpg">
+<meta name="twitter:title" content="Thread中start和run方法的区别">
+<meta name="twitter:description" content="工作使用java多年，没有分清java中的线程在run和start方法的的区别，通过API和一个例子来看一下到底他们有什么区别">
+<meta name="twitter:image" content="https://github.com/gamesdoa/img0/raw/master/java/thread/thread-state.jpg">
 
 
 
@@ -135,13 +135,13 @@
 
 
 
-  <link rel="canonical" href="http://gamesdoa.com/highly-concurrent.html"/>
+  <link rel="canonical" href="http://gamesdoa.com/thread-start-run.html"/>
 
 
 
 
 
-  <title>高并发系统优化 | gamesdoa随记</title>
+  <title>Thread中start和run方法的区别 | gamesdoa随记</title>
   
 
 
@@ -296,7 +296,7 @@
   
 
   <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
-    <link itemprop="mainEntityOfPage" href="http://gamesdoa.com/highly-concurrent.html">
+    <link itemprop="mainEntityOfPage" href="http://gamesdoa.com/thread-start-run.html">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="gamesdoa">
@@ -313,7 +313,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">高并发系统优化</h1>
+          <h1 class="post-title" itemprop="name headline">Thread中start和run方法的区别</h1>
         
 
         <div class="post-meta">
@@ -325,8 +325,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-07-20T00:00:00+08:00">
-                2017-07-20
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-09-28T00:00:00+08:00">
+                2017-09-28
               </time>
             
 
@@ -348,8 +348,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/优化/" itemprop="url" rel="index">
-                    <span itemprop="name">优化</span>
+                  <a href="/categories/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
                   </a>
                 </span>
 
@@ -366,7 +366,7 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a class="cloud-tie-join-count" href="/highly-concurrent.html#comments" itemprop="discussionUrl">
+                <a class="cloud-tie-join-count" href="/thread-start-run.html#comments" itemprop="discussionUrl">
                   <span class="post-comments-count join-count" itemprop="commentCount"></span>
                 </a>
               </span>
@@ -375,7 +375,7 @@
 
           
           
-             <span id="/highly-concurrent.html" class="leancloud_visitors" data-flag-title="高并发系统优化">
+             <span id="/thread-start-run.html" class="leancloud_visitors" data-flag-title="Thread中start和run方法的区别">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -393,7 +393,7 @@
 
           
               <div class="post-description">
-                  对于高并发系统怎么样才能把系统优化的更好？响应时间更短？速度更快？总结一些工作中的经验来看一下。
+                  工作使用java多年，没有分清java中的线程在run和start方法的的区别，通过API和一个例子来看一下到底他们有什么区别
               </div>
           
 
@@ -407,103 +407,103 @@
       
 
       
-        <p>现在社会尤其是电商互联网促销方式的出现，造成的网站面临着并发量越来越大的问题，对于这个状况如果解决不好将严重影响系统的响应速度，严重的情况下可能会造成服务器宕机等极其恶劣的影响，那么该如何解决或者说优化这个问题呢？根据实际工作中涉及到的方方面面，大体可以归结为以下几点：</p>
-<h3 id="应用和静态资源分离"><a href="#应用和静态资源分离" class="headerlink" title="应用和静态资源分离"></a>应用和静态资源分离</h3><p>刚开始的时候应用和静态资源是保存在一起的，当并发量达到一定程度时就需要将静态资源保存到专门的服务器中，静态资源主要包括图片、视频、js、css和一些资源文件等，这些文件因为没有状态，所以分离比较简单，直接存放到相应的服务器就可以了，一般会使用专门的域名去访问，比如，京东的图片保存在img**.jd.com二级域名服务器上，通过不同的域名可以让浏览器直接访问资源服务器而不需要再访问应用服务器了。</p>
-<p>对于js、css和一些资源文件，可以直接放在资源服务器上，但是对于图片这种最常见的做法是建立单独的图片服务器，会使用到类似HDFS这种技术的分布式文件存储，同时一般会提供多个不同的域名，这些不同的域名都可以访问到相同的图片信息，这样的好处是：如果一个页面有很多图片的时候，对于一个域名的并发访问时有限制的，如果只是一个域名，那么加载图片就会出现排队加载的情况，提供多个域名，并发量就上去了，加载页面速度也就提供高了。</p>
-<h3 id="页面缓存"><a href="#页面缓存" class="headerlink" title="页面缓存"></a>页面缓存</h3><p>顾名思义页面缓存就是把内容缓存在客户端cookie的作法，这种技术一般是对于不经常发生数据变化的页面，技术实现比较简单就是在HTML的头部加入以下代码</p>
-<pre><code>&lt;HEAD&gt; 
-    &lt;META HTTP-EQUIV=&quot;Pragma&quot; CONTENT=&quot;no-cache&quot;&gt; 
-    &lt;META HTTP-EQUIV=&quot;Cache-Control&quot; CONTENT=&quot;no-cache&quot;&gt; 
-    &lt;META HTTP-EQUIV=&quot;Expires&quot; CONTENT=&quot;0&quot;&gt; 
-&lt;/HEAD&gt;
+        <h1 id="认识Thread的-start-和-run"><a href="#认识Thread的-start-和-run" class="headerlink" title="认识Thread的 start() 和 run()"></a>认识Thread的 start() 和 run()</h1><p>我们通过API定义来看一下start() 和 run()的区别</p>
+<h2 id="start"><a href="#start" class="headerlink" title="start()"></a>start()</h2><p>JDK中的注释是这样的：</p>
+<p>&gt;<br>    Causes this thread to begin execution;<br>    the Java Virtual Machine calls the run method of this thread.<br>    The result is that two threads are running concurrently:<br>    the current thread (which returns from the call to the start method)<br>    and the other thread (which executes its run method).<br>    It is never legal to start a thread more than once.<br>    In particular, a thread may not be restarted once it has completed execution.</p>
+<p>大体意思是：可以是线程开始执行，java虚拟机将会调用次线程的run方法。这样运行的结果是将会有两个线程同时运行（一个是当前线程，也就是调用start方法的线程，另外一个是执行run方法的线程），并且该方法启动线程只能启动一次，不允许重复启动，也就是说一旦线程完成执行，线程就不能重新启动。</p>
+<blockquote>
+<p>用start方法来启动线程，真正实现了多线程运行，这时无需等待run方法体代码执行完毕而直接继续执行下面的代码。通过调用Thread类的 start()方法来启动一个线程，这时此线程处于就绪（可运行）状态，并没有运行，一旦得到cpu时间片，就开始执行run()方法，这里方法 run()称为线程体，它包含了要执行的这个线程的内容，Run方法运行结束，此线程随即终止。</p>
+</blockquote>
+<h2 id="run"><a href="#run" class="headerlink" title="run()"></a>run()</h2><p>JDK中的注释是这样的：</p>
+<blockquote>
+<p>When an object implementing interface  Runnable is used to create a thread, starting the thread causes the object’s run method to be called in that separately executing  thread.</p>
+<p>The general contract of the method run is that it may  take any action whatsoever.</p>
+</blockquote>
+<p>大体意思是：使用实现接口Runnable的对象来创建线程时，启动时会在单独执行的线程中调用run方法。一般来说，该方法不执行任何的操作返回（void）。</p>
+<blockquote>
+<p>Thread 的子类应该重写该方法。</p>
+<p>run()方法只是类的一个普通方法，如果直接调用Run方法，程序中依然只有主线程这一个线程，其程序执行路径还是顺序执行，要等待run方法体执行完毕后才可继续执行下面的代码，这样就没有达到写线程的目的。</p>
+</blockquote>
+<h2 id="总结对比"><a href="#总结对比" class="headerlink" title="总结对比"></a>总结对比</h2><p>从API不难看出，start方法是启动一个线程并会调用内部的run方法运行，而run方法只是thread的一个普通方法，他的执行还是在当前线程中。</p>
+<h1 id="一个例子"><a href="#一个例子" class="headerlink" title="一个例子"></a>一个例子</h1><pre><code>package com.gamesdoa.test.thread;
+
+import org.junit.Test;
+import java.util.concurrent.TimeUnit;
+/**
+ * Created by gamesdoa on 2017/9/28.
+ */
+public class TreadRandT {
+    @Test
+    public void testStart() throws InterruptedException {
+        Thread t = new Thread() {
+            public void run() {
+                call();
+            }
+        };
+        t.start();
+        try {
+            t.start();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        System.out.println(&quot;线程：&quot; + Thread.currentThread().getName() 
+            + &quot;; 我是主线程&quot;);
+        TimeUnit.MILLISECONDS.sleep(100l);
+    }
+
+    @Test
+    public void testRun() {
+        Thread t = new Thread() {
+            public void run() {
+                call();
+            }
+        };
+        t.run();
+        t.run();
+        System.out.println(&quot;线程：&quot; + Thread.currentThread().getName()
+            + &quot;; 我是主线程&quot;);
+    }
+
+    private void call() {
+        System.out.println(&quot;线程：&quot; + Thread.currentThread().getName()
+            + &quot;; call被调用了&quot;);
+    }
+
+    @Test
+    public void testAll() throws InterruptedException {
+        testStart();
+        System.out.println(&quot;------------我是华丽的分割线--------------&quot;);
+        testRun();
+    }
+}
+</code></pre><p>运行结果如下：</p>
+<pre><code>调用start方法：
+线程：main; 我是主线程
+java.lang.IllegalThreadStateException
+    at java.lang.Thread.start(Thread.java:705)
+    at com.gamesdoa.test.thread.TreadRandT.testStart(TreadRandT.java:21)
+    at com.gamesdoa.test.thread.TreadRandT.testAll(TreadRandT.java:51)&lt;27 internal calls&gt;
+线程：Thread-0; call被调用了
+
+------------我是华丽的分割线--------------
+
+调用run方法：
+线程：main; call被调用了
+线程：main; call被调用了
+线程：main; 我是主线程
 </code></pre><blockquote>
-<p>说明：HTTP头信息“Expires”和“Cache-Control”为应用程序服务器提供了一个控制浏览器和代理服务器上缓存的机制。HTTP头信息Expires告诉代理服务器它的缓存页面何时将过期。HTTP1.1规范中新定义的头信息Cache-Control可以通知浏览器不缓存任何页面。当点击后退按钮时，浏览器重新访问服务器已获取页面。</p>
-<p>Cache-Control的常用的参数：</p>
-<ul>
-<li>no-cache，浏览器和缓存服务器都不应该缓存页面信息；</li>
-<li>public，浏览器和缓存服务器都可以缓存页面信息；</li>
-<li>no-store，请求和响应的信息都不应该被存储在对方的磁盘系统中；</li>
-<li>must-revalidate，对于客户机的每次请求，代理服务器必须想服务器验证缓存是否过时；</li>
-</ul>
-<p>Last-Modified 指页面的最后生成时间，GMT格式；</p>
-<p>expires 过期时限值，GMT格式，指浏览器或缓存服务器在该时间点后必须从服务器中获取新的页面信息；</p>
-<p>上面两个值在JSP中设置值为字符型的GMT格式，无法生效，设置long类型才生效；</p>
+<p>注 ： 可以看到，我们在调用 start 方法启动线程的时候会有一个新的线程被启动（Thread-0），在Thread-0里面才执行的call调用，是一个单独的线程，这样也就可以处理成多线程系统。 重复调用start将会报IllegalThreadStateException异常。</p>
+<p>再看 run 方法，该方法的调用call执行的时候，还是在主线程中顺序执行，调用 run 方法在前，也就先执行， 主线程的输出在后，也就后执行，同样这里可以看到重复执行run方法时完全允许的。</p>
+<p>为什么会在start的方法执行完之后休眠100毫秒？ </p>
+<p>因为如果不加入休眠的话，当另外一个线程启动之后处于可运行状态，如果没有获取到CPU时间，主线程就直接运行完了，那么这里讲不会看到被调用的输出，这也正说明了多线程的执行规则，无序的。</p>
 </blockquote>
-<h3 id="集群与分布式"><a href="#集群与分布式" class="headerlink" title="集群与分布式"></a>集群与分布式</h3><p>什么是集群什么是分布式？简单的说就是：</p>
-<p>集群：同一个业务，部署在多个服务器上，同时对外提供服务，可以形成容灾以及提供并发支持数等</p>
-<p>分布式：一个业务分拆多个子业务，部署在不同的服务器上，不同业务之间相互独立，减少不必要的影响，提高响应，对于某个子业务挂掉的情况下不影响其他的子业务的运行。</p>
-<p>一般在大型网站的生产环境，这两种技术是同时应用的，业务在拆分成多个子业务的前提下，再把每个子业务部署到集群环境中去。现在比较大型的公司基本上都是使用云技术，在物理机上搭建许多docker服务器提供云服务，很方便应用的扩容和缩容。</p>
-<h3 id="反向代理"><a href="#反向代理" class="headerlink" title="反向代理"></a>反向代理</h3><p>基本上的思路呢就是服务器端的负载均衡器，客户端只能感知到代理服务器而不会知道具体是哪个服务器提供的处理。<br><img src="https://github.com/gamesdoa/img0/raw/master/optimization/reverse-proxy.jpg" alt="反向代理"></p>
-<p>反向代理的实现</p>
-<ol>
-<li>需要有一个负载均衡设备来分发用户请求，将用户请求分发到空闲的服务器上</li>
-<li>服务器返回服务处理之后的结果到负载均衡设备</li>
-<li>负载均衡将服务器的服务返回用户<blockquote>
-<p>通俗的说用户和负载均衡设备直接通信，也意味着用户做服务器域名解析时，解析得到的IP其实是负载均衡的IP，而不是服务器的IP，这样有一个好处是，当新加入/移走服务器时，仅仅需要修改负载均衡的服务器列表，而不会影响现有的服务。</p>
-</blockquote>
-</li>
-</ol>
-<h3 id="CDN"><a href="#CDN" class="headerlink" title="CDN"></a>CDN</h3><p>CDN的全称是Content Delivery Network，即<strong>内容分发网络</strong>。</p>
-<p>其基本思路是尽可能避开互联网上有可能影响数据传输速度和稳定性的瓶颈和环节，使内容传输的更快、更稳定。通过在网络各处放置节点服务器所构成的在现有的互联网基础之上的一层智能虚拟网络，CDN系统能够实时地根据网络流量和各节点的连接、负载状况以及到用户的距离和响应时间等综合信息将用户的请求重新导向离用户最近的服务节点上。其目的是使用户可就近取得所需内容，解决 Internet网络拥挤的状况，提高用户访问网站的响应速度。</p>
-<h4 id="关键技术"><a href="#关键技术" class="headerlink" title="关键技术"></a>关键技术</h4><ul>
-<li>内容发布：它借助于建立索引、缓存、流分裂、组播（Multicast）等技术，将内容发布或投递到距离用户最近的远程服务点（POP）处；</li>
-<li>内容路由：它是整体性的网络负载均衡技术，通过内容路由器中的重定向（DNS）机制，在多个远程POP上均衡用户的请求，以使用户请求得到最近内容源的响应；</li>
-<li>内容交换：它根据内容的可用性、服务器的可用性以及用户的背景，在POP的缓存服务器上，利用应用层交换、流分裂、重定向（ICP、WCCP）等技术，智能地平衡负载流量；</li>
-<li>性能管理：它通过内部和外部监控系统，获取网络部件的状况信息，测量内容发布的端到端性能（如包丢失、延时、平均带宽、启动时间、帧速率等），保证网络处于最佳的运行状态。</li>
-</ul>
-<h4 id="主要特点"><a href="#主要特点" class="headerlink" title="主要特点"></a>主要特点</h4><ol>
-<li>本地Cache加速 提高了企业站点(尤其含有大量图片和静态页面站点)的访问速度，并大大提高以上性质站点的稳定性</li>
-<li>镜像服务 消除了不同运营商之间互联的瓶颈造成的影响，实现了跨运营商的网络加速，保证不同网络中的用户都能得到良好的访问质量。</li>
-<li>远程加速 远程访问用户根据DNS负载均衡技术智能自动选择Cache服务器，选择最快的Cache服务器，加快远程访问的速度</li>
-<li>带宽优化 自动生成服务器的远程Mirror（镜像）cache服务器，远程用户访问时从cache服务器上读取数据，减少远程访问的带宽、分担网络流量、减轻原站点WEB服务器负载等功能。</li>
-<li>集群抗攻击 广泛分布的CDN节点加上节点之间的智能冗余机制，可以有效地预防黑客入侵以及降低各种D.D.o.S攻击对网站的影响，同时保证较好的服务质量 。</li>
-</ol>
-<h3 id="算法优化"><a href="#算法优化" class="headerlink" title="算法优化"></a>算法优化</h3><p>算法优化是性能局部优化的首先，常采用各种性能软件来度量CPU时间，内存占用，函数调用次数等以定位问题，然后根据具体情况采用不同的调优方法进行调优，比如利用空间换时间，或者使用合理的数据结构。</p>
+<h1 id="线程状态"><a href="#线程状态" class="headerlink" title="线程状态"></a>线程状态</h1><p>上面说到线程的状态，那么我们最后再在这里补充一下线程的状态：<br><img src="https://github.com/gamesdoa/img0/raw/master/java/thread/thread-state.jpg" alt="线程运行状态"></p>
 <blockquote>
-<p>例如对于比较大的多层循环，可以做成多个map，将多层循环转换成单重循环。</p>
+<p>上图可以看出来，线程有三个状态， 可运行 ， 运行中 ， 阻塞 。</p>
+<p>可运行在获取到CPU时间之后转换成运行中的状态</p>
+<p>运行中在CPU时间到期可以转换成可运行状态，同时遇到阻塞事件的时候状态就会转换成阻塞的状态</p>
+<p>阻塞状态在阻塞条件满足的情况下会变成可运行状态。</p>
 </blockquote>
-<p>算法优化也有不足点：只能够帮助消除一些明显的编程细节引起的瓶颈，如果想只是用算法优化完全解决性能问题基本上是不可能的，而且还具有非常大的难度。</p>
-<h3 id="软件优化"><a href="#软件优化" class="headerlink" title="软件优化"></a>软件优化</h3><ul>
-<li>合理的操作系统优化</li>
-<li>数据库优化</li>
-<li>中间件技术</li>
-<li>本地缓存</li>
-<li>分布式缓存</li>
-</ul>
-<h3 id="硬件优化"><a href="#硬件优化" class="headerlink" title="硬件优化"></a>硬件优化</h3><ul>
-<li>更快的CPU</li>
-<li>加内存减少分页</li>
-<li>更快的网络IO设备（光纤以及专线加带宽，使用万兆千兆网卡代替千兆百兆网卡）</li>
-<li>更快的本地IO设备（内存替代硬盘，SSD替代机械硬盘）</li>
-<li>快速计算资源代替慢速计算资源（快速存储代替慢速存储）</li>
-<li>本地计算换网络传输的优化（采用压缩内容的优化方式）</li>
-</ul>
-<h3 id="算法与资源之间的交互"><a href="#算法与资源之间的交互" class="headerlink" title="算法与资源之间的交互"></a>算法与资源之间的交互</h3><ul>
-<li><p>减少单台服务器的处理量（分而治之）</p>
-<blockquote>
-<p>把大应用按业务分成独立的互相合作的系统，如：高层采用SOA，底层采用数据库分库分表</p>
-<p>web服务器、应用服务器、数据库服务器、文件服务器，独立搭建部署</p>
-<p>采用读写分离，快慢服务分离</p>
-<p>数据库分库分表</p>
-</blockquote>
-</li>
-<li><p>充分利用系统资源</p>
-<blockquote>
-<p>采用多进程、多线程、异步操作以及负载均衡等手段<br>负载均衡主要是防止某台服务器过满或过闲</p>
-</blockquote>
-</li>
-<li><p>减少不必要的计算次数</p>
-<blockquote>
-<p>缓存计算结果，尤其服务器端缓存，以减少不必要的计算</p>
-</blockquote>
-</li>
-<li><p>减少不惜要的IO次数</p>
-<blockquote>
-<p>网络IO次数：客户端缓存，CDN缓存，合并资源以减少请求次数</p>
-<p>磁盘IO次数：缓存常用数据，如利用redis、memcached进行缓存</p>
-</blockquote>
-</li>
-</ul>
 
       
     </div>
@@ -543,9 +543,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/优化/" rel="tag"># 优化</a>
+            <a href="/tags/java/" rel="tag"># java</a>
           
-            <a href="/tags/高并发/" rel="tag"># 高并发</a>
+            <a href="/tags/Thread/" rel="tag"># Thread</a>
           
         </div>
       
@@ -558,8 +558,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/big-data-optimization.html" rel="next" title="海量数据系统优化">
-                <i class="fa fa-chevron-left"></i> 海量数据系统优化
+              <a href="/spring-bean-lifecycle.html" rel="next" title="springBean生命周期">
+                <i class="fa fa-chevron-left"></i> springBean生命周期
               </a>
             
           </div>
@@ -567,10 +567,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/spring-ioc.html" rel="prev" title="spring IOC解析">
-                spring IOC解析 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -708,7 +704,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#应用和静态资源分离"><span class="nav-number">1.</span> <span class="nav-text">应用和静态资源分离</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#页面缓存"><span class="nav-number">2.</span> <span class="nav-text">页面缓存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#集群与分布式"><span class="nav-number">3.</span> <span class="nav-text">集群与分布式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#反向代理"><span class="nav-number">4.</span> <span class="nav-text">反向代理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CDN"><span class="nav-number">5.</span> <span class="nav-text">CDN</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#关键技术"><span class="nav-number">5.1.</span> <span class="nav-text">关键技术</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#主要特点"><span class="nav-number">5.2.</span> <span class="nav-text">主要特点</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#算法优化"><span class="nav-number">6.</span> <span class="nav-text">算法优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#软件优化"><span class="nav-number">7.</span> <span class="nav-text">软件优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#硬件优化"><span class="nav-number">8.</span> <span class="nav-text">硬件优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#算法与资源之间的交互"><span class="nav-number">9.</span> <span class="nav-text">算法与资源之间的交互</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#认识Thread的-start-和-run"><span class="nav-number">1.</span> <span class="nav-text">认识Thread的 start() 和 run()</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#start"><span class="nav-number">1.1.</span> <span class="nav-text">start()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#run"><span class="nav-number">1.2.</span> <span class="nav-text">run()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结对比"><span class="nav-number">1.3.</span> <span class="nav-text">总结对比</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#一个例子"><span class="nav-number">2.</span> <span class="nav-text">一个例子</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#线程状态"><span class="nav-number">3.</span> <span class="nav-text">线程状态</span></a></li></ol></div>
             
 
           </div>
