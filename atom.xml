@@ -147,7 +147,7 @@ java.lang.IllegalThreadStateException
     <link href="http://gamesdoa.com/spring-bean-lifecycle.html"/>
     <id>http://gamesdoa.com/spring-bean-lifecycle.html</id>
     <published>2017-08-14T16:00:00.000Z</published>
-    <updated>2017-09-13T06:53:39.911Z</updated>
+    <updated>2017-09-13T06:53:39.912Z</updated>
     
     <content type="html"><![CDATA[<h1 id="Bean生命周期流程图"><a href="#Bean生命周期流程图" class="headerlink" title="Bean生命周期流程图"></a>Bean生命周期流程图</h1><p>先看一个本博主理解的生命周期的流程图：<br><img src="https://github.com/gamesdoa/img0/raw/master/spring/spring-bean-lifecycle.jpg" alt="springbean生命周期"></p>
 <h1 id="文字描述Bean生命周期"><a href="#文字描述Bean生命周期" class="headerlink" title="文字描述Bean生命周期"></a>文字描述Bean生命周期</h1><h2 id="Spring容器启动"><a href="#Spring容器启动" class="headerlink" title="Spring容器启动"></a>Spring容器启动</h2><ul>
@@ -726,7 +726,7 @@ leave time:1503629611722
     <link href="http://gamesdoa.com/spring-ioc.html"/>
     <id>http://gamesdoa.com/spring-ioc.html</id>
     <published>2017-07-29T16:00:00.000Z</published>
-    <updated>2017-08-23T08:23:30.781Z</updated>
+    <updated>2017-08-23T08:23:30.782Z</updated>
     
     <content type="html"><![CDATA[<h1 id="什么是IOC"><a href="#什么是IOC" class="headerlink" title="什么是IOC"></a>什么是IOC</h1><p>IOC全称：Inversion of Control ，翻译成中文就是控制反转，主要的作用就是把我们原来在程序里面关联两个对象使用的new Object()方法，交给容器控制，也就是说将<strong>对象的创建和依赖关系交给容器</strong></p>
 <p>那么对象之间的依赖怎么表示呢？</p>
@@ -2147,7 +2147,7 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
     <link href="http://gamesdoa.com/highly-concurrent.html"/>
     <id>http://gamesdoa.com/highly-concurrent.html</id>
     <published>2017-07-19T16:00:00.000Z</published>
-    <updated>2017-08-22T04:31:24.998Z</updated>
+    <updated>2017-08-22T04:31:24.999Z</updated>
     
     <content type="html"><![CDATA[<p>现在社会尤其是电商互联网促销方式的出现，造成的网站面临着并发量越来越大的问题，对于这个状况如果解决不好将严重影响系统的响应速度，严重的情况下可能会造成服务器宕机等极其恶劣的影响，那么该如何解决或者说优化这个问题呢？根据实际工作中涉及到的方方面面，大体可以归结为以下几点：</p>
 <h3 id="应用和静态资源分离"><a href="#应用和静态资源分离" class="headerlink" title="应用和静态资源分离"></a>应用和静态资源分离</h3><p>刚开始的时候应用和静态资源是保存在一起的，当并发量达到一定程度时就需要将静态资源保存到专门的服务器中，静态资源主要包括图片、视频、js、css和一些资源文件等，这些文件因为没有状态，所以分离比较简单，直接存放到相应的服务器就可以了，一般会使用专门的域名去访问，比如，京东的图片保存在img**.jd.com二级域名服务器上，通过不同的域名可以让浏览器直接访问资源服务器而不需要再访问应用服务器了。</p>
@@ -2257,9 +2257,9 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
       <category term="优化" scheme="http://gamesdoa.com/categories/%E4%BC%98%E5%8C%96/"/>
     
     
-      <category term="高并发" scheme="http://gamesdoa.com/tags/%E9%AB%98%E5%B9%B6%E5%8F%91/"/>
-    
       <category term="优化" scheme="http://gamesdoa.com/tags/%E4%BC%98%E5%8C%96/"/>
+    
+      <category term="高并发" scheme="http://gamesdoa.com/tags/%E9%AB%98%E5%B9%B6%E5%8F%91/"/>
     
   </entry>
   
@@ -2268,7 +2268,7 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
     <link href="http://gamesdoa.com/big-data-optimization.html"/>
     <id>http://gamesdoa.com/big-data-optimization.html</id>
     <published>2017-07-14T16:00:00.000Z</published>
-    <updated>2017-08-09T10:19:43.197Z</updated>
+    <updated>2017-08-09T10:19:43.198Z</updated>
     
     <content type="html"><![CDATA[<h2 id="海量数据优化"><a href="#海量数据优化" class="headerlink" title="海量数据优化"></a>海量数据优化</h2><p>现在社会尤其是互联网方面的蓬勃发展，造成的网站面临着数据量越来越大的问题，对于这个状况如果解决不好将严重影响系统的运行速度，那么该如何解决或者说优化这个问题呢？根据实际工作中涉及到的方方面面，大体可以归结为以下几点：</p>
 <h3 id="页面静态化"><a href="#页面静态化" class="headerlink" title="页面静态化"></a>页面静态化</h3><p>页面静态化是将程序最后生成的页面保存起来，使用页面静态化后就不需要每次请求都重新生成页面了，这样不但不需要查询持久化存储，而且连应用程序处理都不需要，所以页面静态化同时对数据量大和并发量高两大问题都有好处。页面静态化可以在程序中使用模板技术生成，如常用的Velocity都可以根据模板生成静态页面，另外也可以使用缓存服务器在应用服务器的上一层缓存生成的页面，如可以使用varnish或者squid，另外Nginx也提供了相应的功能。</p>
@@ -2333,9 +2333,9 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
       <category term="优化" scheme="http://gamesdoa.com/categories/%E4%BC%98%E5%8C%96/"/>
     
     
-      <category term="优化" scheme="http://gamesdoa.com/tags/%E4%BC%98%E5%8C%96/"/>
-    
       <category term="大数据优化" scheme="http://gamesdoa.com/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE%E4%BC%98%E5%8C%96/"/>
+    
+      <category term="优化" scheme="http://gamesdoa.com/tags/%E4%BC%98%E5%8C%96/"/>
     
   </entry>
   
@@ -2678,7 +2678,7 @@ private void processDispatchResult(HttpServletRequest request, HttpServletRespon
     <link href="http://gamesdoa.com/mysql-innodb-index.html"/>
     <id>http://gamesdoa.com/mysql-innodb-index.html</id>
     <published>2017-06-30T16:00:00.000Z</published>
-    <updated>2017-08-08T02:05:57.512Z</updated>
+    <updated>2017-08-08T02:05:57.513Z</updated>
     
     <content type="html"><![CDATA[<h2 id="B-Tree索引"><a href="#B-Tree索引" class="headerlink" title="B+Tree索引"></a>B+Tree索引</h2><p>B+Tree的数据结构这里就不详细表述了，如果你还不了解什么是B+Tree，请参考这里<a href="https://zh.wikipedia.org/wiki/B%2B%E6%A0%91" title="B+树" target="_blank" rel="external">https://zh.wikipedia.org/wiki/B%2B%E6%A0%91</a>，如果你不想花费时间研究B+Tree，在这里也附上一张个人理解的InnoDB实现的B+Tree图，并会稍作说明。</p>
 <p><img src="https://github.com/gamesdoa/img0/raw/master/mysql/innodb-index/B%2BTree.jpg" alt="B+Tree个人理解图"></p>
@@ -3354,7 +3354,7 @@ Eden + S1 -&gt; S0 //第五次
     <link href="http://gamesdoa.com/hotspot-jvm.html"/>
     <id>http://gamesdoa.com/hotspot-jvm.html</id>
     <published>2017-05-31T16:00:00.000Z</published>
-    <updated>2017-06-28T04:26:35.012Z</updated>
+    <updated>2017-06-28T04:26:35.013Z</updated>
     
     <content type="html"><![CDATA[<p>Java虚拟机在执行Java程序的过程中会把它所管理的内存划分为若干个不同数据区域。这些区域都有各自的用途，以及创建和销毁的时间，有的区域随着虚拟机进程的启动而存在，有些区域则是依赖用户线程的启动和结束而建立和销毁。先直观的看一下虚拟机内存的划分。<br><img src="https://github.com/gamesdoa/img0/raw/master/java/jvm/jvm.jpg" alt="jvm运行时数据区"></p>
 <ul>
@@ -3597,11 +3597,34 @@ Log checkpoint at   0 11056147
   </entry>
   
   <entry>
+    <title>hexo 随笔</title>
+    <link href="http://gamesdoa.com/hello-world.html"/>
+    <id>http://gamesdoa.com/hello-world.html</id>
+    <published>2017-04-30T16:00:00.000Z</published>
+    <updated>2017-08-22T04:30:26.435Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="本地预览hexo创建的blog"><a href="#本地预览hexo创建的blog" class="headerlink" title="本地预览hexo创建的blog"></a>本地预览hexo创建的blog</h2><pre><code>hexo s
+是简写：hexo server
+</code></pre><h2 id="发布本地文件到github库"><a href="#发布本地文件到github库" class="headerlink" title="发布本地文件到github库"></a>发布本地文件到github库</h2><pre><code>hexo clean  //清理
+hexo g         //重新构建    
+hexo d        //发布
+</code></pre>]]></content>
+    
+    <summary type="html">
+    
+      hexo常用命令
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
     <title>hexo的next主题优化定制</title>
     <link href="http://gamesdoa.com/hexo-next-tailor-made.html"/>
     <id>http://gamesdoa.com/hexo-next-tailor-made.html</id>
     <published>2017-04-30T16:00:00.000Z</published>
-    <updated>2017-08-08T02:13:40.161Z</updated>
+    <updated>2017-08-08T02:13:40.162Z</updated>
     
     <content type="html"><![CDATA[<p>刚开始使用next主题，需要慢慢折腾，在折腾过程中，遇到的问题记录下来，做个备忘。</p>
 <h2 id="调整首页博文之间的间距"><a href="#调整首页博文之间的间距" class="headerlink" title="调整首页博文之间的间距"></a>调整首页博文之间的间距</h2><h3 id="博文间的距离"><a href="#博文间的距离" class="headerlink" title="博文间的距离"></a>博文间的距离</h3><p>想让首页的博文之间的间距缩小一些，看着紧凑些，如此处理呢？其实只需要修改themes\你的主题\source\css_variables\base.styl文件内的$post-eof-margin-top和$post-eof-margin-bottom这两个值，影响的是博文之间分割线的上下间距，如果想紧凑就调小，如果想宽松就是放大。</p>
@@ -3645,29 +3668,6 @@ Log checkpoint at   0 11056147
       <category term="hexo" scheme="http://gamesdoa.com/tags/hexo/"/>
     
       <category term="next" scheme="http://gamesdoa.com/tags/next/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>hexo 随笔</title>
-    <link href="http://gamesdoa.com/hello-world.html"/>
-    <id>http://gamesdoa.com/hello-world.html</id>
-    <published>2017-04-30T16:00:00.000Z</published>
-    <updated>2017-08-22T04:30:26.435Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="本地预览hexo创建的blog"><a href="#本地预览hexo创建的blog" class="headerlink" title="本地预览hexo创建的blog"></a>本地预览hexo创建的blog</h2><pre><code>hexo s
-是简写：hexo server
-</code></pre><h2 id="发布本地文件到github库"><a href="#发布本地文件到github库" class="headerlink" title="发布本地文件到github库"></a>发布本地文件到github库</h2><pre><code>hexo clean  //清理
-hexo g         //重新构建    
-hexo d        //发布
-</code></pre>]]></content>
-    
-    <summary type="html">
-    
-      hexo常用命令
-    
-    </summary>
-    
     
   </entry>
   

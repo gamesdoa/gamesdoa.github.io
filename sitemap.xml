@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://gamesdoa.com/about/index.html</loc>
+    
+    <lastmod>2018-11-14T05:14:55.020Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://gamesdoa.com/thread-start-run.html</loc>
     
     <lastmod>2017-09-28T07:17:14.814Z</lastmod>
@@ -11,7 +18,7 @@
   <url>
     <loc>http://gamesdoa.com/spring-bean-lifecycle.html</loc>
     
-    <lastmod>2017-09-13T06:53:39.911Z</lastmod>
+    <lastmod>2017-09-13T06:53:39.912Z</lastmod>
     
   </url>
   
@@ -25,14 +32,14 @@
   <url>
     <loc>http://gamesdoa.com/spring-ioc.html</loc>
     
-    <lastmod>2017-08-23T08:23:30.781Z</lastmod>
+    <lastmod>2017-08-23T08:23:30.782Z</lastmod>
     
   </url>
   
   <url>
     <loc>http://gamesdoa.com/highly-concurrent.html</loc>
     
-    <lastmod>2017-08-22T04:31:24.998Z</lastmod>
+    <lastmod>2017-08-22T04:31:24.999Z</lastmod>
     
   </url>
   
@@ -46,7 +53,7 @@
   <url>
     <loc>http://gamesdoa.com/big-data-optimization.html</loc>
     
-    <lastmod>2017-08-09T10:19:43.197Z</lastmod>
+    <lastmod>2017-08-09T10:19:43.198Z</lastmod>
     
   </url>
   
@@ -60,14 +67,14 @@
   <url>
     <loc>http://gamesdoa.com/hexo-next-tailor-made.html</loc>
     
-    <lastmod>2017-08-08T02:13:40.161Z</lastmod>
+    <lastmod>2017-08-08T02:13:40.162Z</lastmod>
     
   </url>
   
   <url>
     <loc>http://gamesdoa.com/mysql-innodb-index.html</loc>
     
-    <lastmod>2017-08-08T02:05:57.512Z</lastmod>
+    <lastmod>2017-08-08T02:05:57.513Z</lastmod>
     
   </url>
   
@@ -81,7 +88,7 @@
   <url>
     <loc>http://gamesdoa.com/hotspot-jvm.html</loc>
     
-    <lastmod>2017-06-28T04:26:35.012Z</lastmod>
+    <lastmod>2017-06-28T04:26:35.013Z</lastmod>
     
   </url>
   
@@ -100,13 +107,6 @@
   </url>
   
   <url>
-    <loc>http://gamesdoa.com/about/index.html</loc>
-    
-    <lastmod>2017-06-28T01:19:40.208Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://gamesdoa.com/categories/index.html</loc>
     
     <lastmod>2017-06-24T18:25:06.410Z</lastmod>
@@ -116,7 +116,7 @@
   <url>
     <loc>http://gamesdoa.com/tags/index.html</loc>
     
-    <lastmod>2017-06-24T18:24:47.366Z</lastmod>
+    <lastmod>2017-06-24T18:24:47.367Z</lastmod>
     
   </url>
   
