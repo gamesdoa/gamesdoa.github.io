@@ -1,0 +1,7 @@
+# Social links
+social:
+  Email: mailto:gamesdoa@gmail.com
+
+social_icons:
+  enable: true
+  Email: envelope
