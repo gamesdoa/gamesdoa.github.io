@@ -2420,9 +2420,9 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
       <category term="优化" scheme="http://gamesdoa.com/categories/%E4%BC%98%E5%8C%96/"/>
     
     
-      <category term="优化" scheme="http://gamesdoa.com/tags/%E4%BC%98%E5%8C%96/"/>
-    
       <category term="高并发" scheme="http://gamesdoa.com/tags/%E9%AB%98%E5%B9%B6%E5%8F%91/"/>
+    
+      <category term="优化" scheme="http://gamesdoa.com/tags/%E4%BC%98%E5%8C%96/"/>
     
   </entry>
   
@@ -2496,9 +2496,9 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
       <category term="优化" scheme="http://gamesdoa.com/categories/%E4%BC%98%E5%8C%96/"/>
     
     
-      <category term="大数据优化" scheme="http://gamesdoa.com/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE%E4%BC%98%E5%8C%96/"/>
-    
       <category term="优化" scheme="http://gamesdoa.com/tags/%E4%BC%98%E5%8C%96/"/>
+    
+      <category term="大数据优化" scheme="http://gamesdoa.com/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE%E4%BC%98%E5%8C%96/"/>
     
   </entry>
   
@@ -3760,6 +3760,29 @@ Log checkpoint at   0 11056147
   </entry>
   
   <entry>
+    <title>hexo 随笔</title>
+    <link href="http://gamesdoa.com/hexo.html"/>
+    <id>http://gamesdoa.com/hexo.html</id>
+    <published>2017-04-30T16:00:00.000Z</published>
+    <updated>2017-08-22T04:30:26.435Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="本地预览hexo创建的blog"><a href="#本地预览hexo创建的blog" class="headerlink" title="本地预览hexo创建的blog"></a>本地预览hexo创建的blog</h2><pre><code>hexo s
+是简写：hexo server
+</code></pre><h2 id="发布本地文件到github库"><a href="#发布本地文件到github库" class="headerlink" title="发布本地文件到github库"></a>发布本地文件到github库</h2><pre><code>hexo clean  //清理
+hexo g         //重新构建    
+hexo d        //发布
+</code></pre>]]></content>
+    
+    <summary type="html">
+    
+      hexo常用命令
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
     <title>hexo的next主题优化定制</title>
     <link href="http://gamesdoa.com/hexo-next-tailor-made.html"/>
     <id>http://gamesdoa.com/hexo-next-tailor-made.html</id>
@@ -3816,29 +3839,6 @@ social_icons:
       <category term="hexo" scheme="http://gamesdoa.com/tags/hexo/"/>
     
       <category term="next" scheme="http://gamesdoa.com/tags/next/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>hexo 随笔</title>
-    <link href="http://gamesdoa.com/hello-world.html"/>
-    <id>http://gamesdoa.com/hello-world.html</id>
-    <published>2017-04-30T16:00:00.000Z</published>
-    <updated>2017-08-22T04:30:26.435Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="本地预览hexo创建的blog"><a href="#本地预览hexo创建的blog" class="headerlink" title="本地预览hexo创建的blog"></a>本地预览hexo创建的blog</h2><pre><code>hexo s
-是简写：hexo server
-</code></pre><h2 id="发布本地文件到github库"><a href="#发布本地文件到github库" class="headerlink" title="发布本地文件到github库"></a>发布本地文件到github库</h2><pre><code>hexo clean  //清理
-hexo g         //重新构建    
-hexo d        //发布
-</code></pre>]]></content>
-    
-    <summary type="html">
-    
-      hexo常用命令
-    
-    </summary>
-    
     
   </entry>
   
