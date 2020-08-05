@@ -2,9 +2,23 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://gamesdoa.com/hexo-next-tailor-made.html</loc>
+    
+    <lastmod>2020-08-05T08:50:25.465Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://gamesdoa.com/about/index.html</loc>
     
-    <lastmod>2018-11-14T05:14:55.020Z</lastmod>
+    <lastmod>2020-08-05T08:45:18.423Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://gamesdoa.com/uos-deb.html</loc>
+    
+    <lastmod>2020-08-05T08:25:13.265Z</lastmod>
     
   </url>
   
@@ -61,13 +75,6 @@
     <loc>http://gamesdoa.com/springmvc-request.html</loc>
     
     <lastmod>2017-08-09T06:49:48.392Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://gamesdoa.com/hexo-next-tailor-made.html</loc>
-    
-    <lastmod>2017-08-08T02:13:40.162Z</lastmod>
     
   </url>
   

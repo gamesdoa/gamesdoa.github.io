@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://gamesdoa.com/"/>
-  <updated>2017-09-28T07:17:14.814Z</updated>
+  <updated>2020-08-05T08:25:13.265Z</updated>
   <id>http://gamesdoa.com/</id>
   
   <author>
@@ -14,6 +14,169 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>UOS打包符合商店的deb包</title>
+    <link href="http://gamesdoa.com/uos-deb.html"/>
+    <id>http://gamesdoa.com/uos-deb.html</id>
+    <published>2020-08-04T16:00:00.000Z</published>
+    <updated>2020-08-05T08:25:13.265Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="构建一个规范的软件目录"><a href="#构建一个规范的软件目录" class="headerlink" title="构建一个规范的软件目录"></a>构建一个规范的软件目录</h2><ul>
+<li><p>新建文件夹 com.domainname-version 例如 com.gamesdoa-1.0.0</p>
+</li>
+<li><p>在 com.gamesdoa-1.0.0文件夹下 新建 com.gamesdoa 目录</p>
+</li>
+<li><p>在 com.gamesdoa 目录下新建entries、files两个文件夹和 info 文件</p>
+</li>
+<li><p>在entries 下新建applications文件夹</p>
+</li>
+<li><p>在applications下新建桌面文件appname.desktop 例如 IPBindClient.desktop</p>
+<pre><code>[Desktop Entry]
+Name=IP绑定工具
+Type=Application
+Categories=Utility;
+Exec=/opt/apps/com.gamesdoa/files/IPBindClient
+Icon=/opt/apps/com.gamesdoa/files/IPBindClient.png
+Terminal=false
+</code></pre></li>
+<li><p><strong>将库和二进制可执行文件放在files目录（二进制可以执行的文件）</strong></p>
+</li>
+<li><p>修改 info 文件</p>
+<pre><code>info
+{
+&quot;appid&quot;:&quot;com.gamesdoa&quot;,
+&quot;name&quot;:&quot;IP绑定工具&quot;,
+&quot;version&quot;:&quot;1.0.0&quot;,
+&quot;arch&quot;:[&quot;amd64&quot;],
+&quot;permissions&quot;:
+{
+&quot;autostart&quot;:false,
+&quot;notification&quot;:false,
+&quot;trayicon&quot;:true,
+&quot;clipboard&quot;:true,
+&quot;account&quot;:false,
+&quot;bluetooth&quot;:false,
+&quot;camera&quot;:false,
+&quot;audio_record&quot;:true,
+&quot;installed_apps&quot;:false
+}
+}
+</code></pre></li>
+</ul>
+<h2 id="使用dh-make生成debian目录"><a href="#使用dh-make生成debian目录" class="headerlink" title="使用dh_make生成debian目录"></a>使用dh_make生成debian目录</h2><p>在com.gamesdoa-1.0.0目录下运行命令</p>
+<pre><code>dh_make --createorig -s
+</code></pre><blockquote>
+<p>如果不存在dh_make指令，运行下面命令安装</p>
+<pre><code>sudo apt-get install build-essential dh-make
+</code></pre><p>如果需要切换超级用户</p>
+<pre><code>sudo  su
+</code></pre></blockquote>
+<p>确认信息输入y即可</p>
+<h2 id="整理自动生成的debian"><a href="#整理自动生成的debian" class="headerlink" title="整理自动生成的debian"></a>整理自动生成的debian</h2><ul>
+<li><p>修改自动生成debian目录下的control文件</p>
+<pre><code>Source: com.gamesdoa
+Section: utils
+Priority: optional
+Maintainer: unknown &lt;yang@unknown&gt;
+Build-Depends: debhelper (&gt;= 11)
+Standards-Version: 4.1.3
+Homepage: &lt;insert the upstream URL, if relevant&gt;
+#Vcs-Browser: https://salsa.debian.org/debian/com.gamesdoa
+#Vcs-Git: https://salsa.debian.org/debian/com.gamesdoa.git
+
+Package: com.gamesdoa
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: &lt;insert up to 60 chars description&gt;
+ &lt;insert long description, indented with spaces&gt;
+</code></pre><blockquote>
+<p>注意 Section、Priority、Architecture、Package</p>
+</blockquote>
+</li>
+<li><p>在debian 目录下新建install文件</p>
+<pre><code>touch install
+</code></pre><p>  在install文件指定安装路径，这里填写</p>
+<pre><code>com.gamesdoa/ /opt/apps
+com.gamesdoa/entries/applications/IPBindClient.desktop /usr/share/applications
+</code></pre><blockquote>
+<p>将com.gamesdoa目录安装到/opt/apps目录下</p>
+<p>将桌面文件安装到/usr/share/applications目录下（菜单可见）</p>
+</blockquote>
+</li>
+<li><p>修改rules文件</p>
+<pre><code>#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+# see FEATURE AREAS in dpkg-buildflags(1)
+#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# see ENVIRONMENT in dpkg-buildflags(1)
+# package maintainers to append CFLAGS
+#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+# package maintainers to append LDFLAGS
+#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+%:
+    dh $@
+override_dh_auto_build:
+
+override_dh_shlibdeps:
+
+override_dh_strip:
+
+# dh_make generated override targets
+# This is example for Cmake (See https://bugs.debian.org/641051 )
+#override_dh_auto_configure:
+#    dh_auto_configure -- #    -DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
+</code></pre></li>
+</ul>
+<pre><code>&gt; override了三处
+</code></pre><ul>
+<li><p>删除所有EX、ex结尾的文件</p>
+<pre><code>rm *.EX *.ex
+</code></pre></li>
+</ul>
+<h2 id="编译并生成deb包"><a href="#编译并生成deb包" class="headerlink" title="编译并生成deb包"></a>编译并生成deb包</h2><ul>
+<li><p>在com.gamesdoa-1.0.0目录下执行(777权限可能导致失败)</p>
+<pre><code>dpkg-source -b .
+</code></pre><blockquote>
+<p>可能由于gcc版本的问题出错，略过</p>
+</blockquote>
+</li>
+<li><p>执行下面的命令构建deb包 </p>
+<pre><code>dpkg-buildpackage -us -uc -nc
+</code></pre></li>
+</ul>
+<h2 id="整理deb包内部结构"><a href="#整理deb包内部结构" class="headerlink" title="整理deb包内部结构"></a>整理deb包内部结构</h2><ul>
+<li><p>解压到temp目录下</p>
+<pre><code>fakeroot dpkg-deb -R com.gamesdoa_1.0.0-1_amd64.deb temp
+</code></pre></li>
+<li><p>整理包内目录结构</p>
+<pre><code>mv temp/usr/share/doc temp/opt/apps/com.gamesdoa/files
+</code></pre></li>
+<li><p>最后重新归档安装包</p>
+<pre><code>fakeroot dpkg-deb -b temp com.gamesdoa_1.0.0_amd64.deb
+</code></pre></li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      如何在UOS系统上打包符合商店规则的deb包。
+    
+    </summary>
+    
+      <category term="uos" scheme="http://gamesdoa.com/categories/uos/"/>
+    
+    
+      <category term="uos" scheme="http://gamesdoa.com/tags/uos/"/>
+    
+      <category term="linux" scheme="http://gamesdoa.com/tags/linux/"/>
+    
+  </entry>
   
   <entry>
     <title>Thread中start和run方法的区别</title>
@@ -3597,34 +3760,11 @@ Log checkpoint at   0 11056147
   </entry>
   
   <entry>
-    <title>hexo 随笔</title>
-    <link href="http://gamesdoa.com/hello-world.html"/>
-    <id>http://gamesdoa.com/hello-world.html</id>
-    <published>2017-04-30T16:00:00.000Z</published>
-    <updated>2017-08-22T04:30:26.435Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="本地预览hexo创建的blog"><a href="#本地预览hexo创建的blog" class="headerlink" title="本地预览hexo创建的blog"></a>本地预览hexo创建的blog</h2><pre><code>hexo s
-是简写：hexo server
-</code></pre><h2 id="发布本地文件到github库"><a href="#发布本地文件到github库" class="headerlink" title="发布本地文件到github库"></a>发布本地文件到github库</h2><pre><code>hexo clean  //清理
-hexo g         //重新构建    
-hexo d        //发布
-</code></pre>]]></content>
-    
-    <summary type="html">
-    
-      hexo常用命令
-    
-    </summary>
-    
-    
-  </entry>
-  
-  <entry>
     <title>hexo的next主题优化定制</title>
     <link href="http://gamesdoa.com/hexo-next-tailor-made.html"/>
     <id>http://gamesdoa.com/hexo-next-tailor-made.html</id>
     <published>2017-04-30T16:00:00.000Z</published>
-    <updated>2017-08-08T02:13:40.162Z</updated>
+    <updated>2020-08-05T08:50:25.465Z</updated>
     
     <content type="html"><![CDATA[<p>刚开始使用next主题，需要慢慢折腾，在折腾过程中，遇到的问题记录下来，做个备忘。</p>
 <h2 id="调整首页博文之间的间距"><a href="#调整首页博文之间的间距" class="headerlink" title="调整首页博文之间的间距"></a>调整首页博文之间的间距</h2><h3 id="博文间的距离"><a href="#博文间的距离" class="headerlink" title="博文间的距离"></a>博文间的距离</h3><p>想让首页的博文之间的间距缩小一些，看着紧凑些，如此处理呢？其实只需要修改themes\你的主题\source\css_variables\base.styl文件内的$post-eof-margin-top和$post-eof-margin-bottom这两个值，影响的是博文之间分割线的上下间距，如果想紧凑就调小，如果想宽松就是放大。</p>
@@ -3650,10 +3790,18 @@ hexo d        //发布
 //这一部分调整博文以及目录信息
 .container .main-inner {
     width: 70%;
-</code></pre><ul>
-<li>这里针对Pisces主题的设置，原来的设计思路是显示器小于1600像素时阅读区展示700px，大于1600像素时阅读区展示900px。其实这里需要在行宽以及阅读舒适度方面做一个折中，毕竟单独的设置宽度太宽，阅读起来也不是很友好不是？ 就个人而言，太宽有时候会看串行啊。</li>
-</ul>
-<p>其他的还在慢慢折腾，有其他问题随时补充。</p>
+</code></pre><blockquote>
+<p>这里针对Pisces主题的设置，原来的设计思路是显示器小于1600像素时阅读区展示700px，大于1600像素时阅读区展示900px。其实这里需要在行宽以及阅读舒适度方面做一个折中，毕竟单独的设置宽度太宽，阅读起来也不是很友好不是？ 就个人而言，太宽有时候会看串行啊。</p>
+</blockquote>
+<h2 id="在侧边栏添加邮箱"><a href="#在侧边栏添加邮箱" class="headerlink" title="在侧边栏添加邮箱"></a>在侧边栏添加邮箱</h2><p>在<strong>主题配置文件</strong> source/_data/next.yml 中添加social配置：</p>
+<pre><code># Social links
+social:
+  Email: mailto:gamesdoa@gmail.com
+
+social_icons:
+  enable: true
+  Email: envelope
+</code></pre><p>其他的还在慢慢折腾，有其他问题随时补充。</p>
 ]]></content>
     
     <summary type="html">
@@ -3668,6 +3816,29 @@ hexo d        //发布
       <category term="hexo" scheme="http://gamesdoa.com/tags/hexo/"/>
     
       <category term="next" scheme="http://gamesdoa.com/tags/next/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>hexo 随笔</title>
+    <link href="http://gamesdoa.com/hello-world.html"/>
+    <id>http://gamesdoa.com/hello-world.html</id>
+    <published>2017-04-30T16:00:00.000Z</published>
+    <updated>2017-08-22T04:30:26.435Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="本地预览hexo创建的blog"><a href="#本地预览hexo创建的blog" class="headerlink" title="本地预览hexo创建的blog"></a>本地预览hexo创建的blog</h2><pre><code>hexo s
+是简写：hexo server
+</code></pre><h2 id="发布本地文件到github库"><a href="#发布本地文件到github库" class="headerlink" title="发布本地文件到github库"></a>发布本地文件到github库</h2><pre><code>hexo clean  //清理
+hexo g         //重新构建    
+hexo d        //发布
+</code></pre>]]></content>
+    
+    <summary type="html">
+    
+      hexo常用命令
+    
+    </summary>
+    
     
   </entry>
   
