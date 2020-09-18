@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://gamesdoa.com/"/>
-  <updated>2020-08-05T08:25:13.265Z</updated>
+  <updated>2020-09-18T07:26:40.817Z</updated>
   <id>http://gamesdoa.com/</id>
   
   <author>
@@ -14,6 +14,277 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Hadoop 3.1.4 + Zookeeper 3.4.14 + Spark 2.4.7 + HBase 2.2.5 + Phoenix 5.0.0 高可用集群部署</title>
+    <link href="http://gamesdoa.com/hadoop-zookeeper-spark-hbase-phoenix.html"/>
+    <id>http://gamesdoa.com/hadoop-zookeeper-spark-hbase-phoenix.html</id>
+    <published>2020-09-17T16:00:00.000Z</published>
+    <updated>2020-09-18T07:26:40.817Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="集群环境：采用VMWare模拟3台主机。"><a href="#集群环境：采用VMWare模拟3台主机。" class="headerlink" title="集群环境：采用VMWare模拟3台主机。"></a>集群环境：采用VMWare模拟3台主机。</h1><p>–</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">IP 地址</th>
+<th style="text-align:center">主机名</th>
+<th style="text-align:center">Hadoop</th>
+<th style="text-align:center">Spark</th>
+<th style="text-align:center">HBase</th>
+<th style="text-align:center">Phoenix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">192.168.112.18</td>
+<td style="text-align:center">gamesdoa18</td>
+<td style="text-align:center">namenode/datanode</td>
+<td style="text-align:center">Master/Worker</td>
+<td style="text-align:center">HMaster/HRigeonServer</td>
+<td style="text-align:center">Server</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.112.19</td>
+<td style="text-align:center">gamesdoa19</td>
+<td style="text-align:center">namenode/datanode</td>
+<td style="text-align:center">Master/Worker</td>
+<td style="text-align:center">HMaster/HRigeonServer</td>
+<td style="text-align:center">Server</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.112.20</td>
+<td style="text-align:center">gamesdoa20</td>
+<td style="text-align:center">namenode/datanode</td>
+<td style="text-align:center">Master/Worker</td>
+<td style="text-align:center">HMaster/HRigeonServer</td>
+<td style="text-align:center">Server</td>
+</tr>
+</tbody>
+</table>
+<h2 id="用VMWare-Workstation准备虚拟环境，安装CentOS-7-8"><a href="#用VMWare-Workstation准备虚拟环境，安装CentOS-7-8" class="headerlink" title="用VMWare Workstation准备虚拟环境，安装CentOS 7.8"></a>用VMWare Workstation准备虚拟环境，安装CentOS 7.8</h2><p>–</p>
+<ul>
+<li><p><strong>配置主机名及IP</strong></p>
+<p>  配置主机名</p>
+<pre><code>$ hostnamectl set-hostname gamesdoa18
+$ hostname
+gamesdoa18
+</code></pre></li>
+</ul>
+<pre><code>编辑/etc/hosts
+
+    $ vim /etc/hosts
+
+    127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+    ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+    192.168.112.18 gamesdoa18
+    192.168.112.19 gamesdoa19
+    192.168.112.20 gamesdoa20
+
+设置IP路由等，编辑/etc/sysconfig/network-scripts/ifcfg-ens33
+
+    $ vim /etc/sysconfig/network-scripts/ifcfg-ens33
+
+    TYPE=Ethernet
+    PROXY_METHOD=none
+    BROWSER_ONLY=no
+    BOOTPROTO=static
+    DEFROUTE=yes
+    IPV4_FAILURE_FATAL=no
+    IPV6INIT=yes
+    IPV6_AUTOCONF=yes
+    IPV6_DEFROUTE=yes
+    IPV6_FAILURE_FATAL=no
+    IPV6_ADDR_GEN_MODE=stable-privacy
+    NAME=ens33
+    UUID=5ff3f099-11f8-4880-b5d4-6a70183d0572
+    DEVICE=ens33
+    ONBOOT=yes
+    IPADDR=192.168.112.18
+    NETMASK=255.255.255.0
+    GATEWAY=192.168.112.254
+    DNS1=61.139.2.69
+    IPV6_PRIVACY=no
+
+&gt; 注意修改：BOOTPROTO、ONBOOT、IPADDR、NETMASK、GATEWAY、DNS1 信息
+
+重启网络
+
+    $ systemctl restart network
+</code></pre><ul>
+<li><p><strong>安装 JDK 1.8</strong></p>
+<blockquote>
+<p>下载并解压<br>在<a href="https://www.oracle.com/java/technologies/javase-downloads.html" target="_blank" rel="external">官网</a>下载所需版本的 JDK，这里我下载的版本为<a href="https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html" target="_blank" rel="external">JDK 1.8</a> ,下载后进行解压：</p>
+</blockquote>
+<pre><code># tar -zxvf jdk-8u261-linux-x64.tar.gz
+</code></pre><blockquote>
+<p>设置环境变量</p>
+</blockquote>
+<pre><code># vim /etc/profile
+
+export JAVA_HOME=/usr/java/jdk1.8.0_201  
+export JRE_HOME=${JAVA_HOME}/jre  
+export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib  
+export PATH=${JAVA_HOME}/bin:$PATH
+</code></pre><blockquote>
+<p>执行 source 命令，使得配置立即生效：</p>
+</blockquote>
+<pre><code># source /etc/profile
+</code></pre><blockquote>
+<p>检查是否安装成功</p>
+</blockquote>
+<pre><code># java -version
+
+java version &quot;1.8.0_261&quot;
+Java(TM) SE Runtime Environment (build 1.8.0_261-b12)
+Java HotSpot(TM) 64-Bit Server VM (build 25.261-b12, mixed mode)
+</code></pre></li>
+</ul>
+<ul>
+<li><p><strong>关闭防火墙</strong></p>
+<blockquote>
+<p>在开始安装集群前，最好先关闭防火墙，否则后续会出现很多异常问题。</p>
+</blockquote>
+<pre><code># systemctl stop firewalld &amp; systemctl disable firewalld
+
+[1] 7013
+Removed symlink /etc/systemd/system/multi-user.target.wants/firewalld.service.
+Removed symlink /etc/systemd/system/dbus-org.fedoraproject.FirewallD1.service.
+</code></pre></li>
+<li><p><strong>关闭Swap</strong></p>
+<blockquote>
+<p>执行swapoff -a临时关闭，但系统重启后恢复</p>
+<p>编辑/etc/fstab，注释掉包含swap的行后，重启</p>
+</blockquote>
+</li>
+<li><p><strong>禁用SELinux（仅限实验测试等环节使用）</strong></p>
+<blockquote>
+<p>编辑/etc/selinux/config，更改SELINUX=disabled，重启。检查状态</p>
+</blockquote>
+<pre><code>$ sestatus
+SELinux status:                 disabled
+</code></pre></li>
+</ul>
+<h2 id="Clone两个新的镜像"><a href="#Clone两个新的镜像" class="headerlink" title="Clone两个新的镜像"></a>Clone两个新的镜像</h2><p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/clone.png" alt="克隆步骤"></p>
+<blockquote>
+<p>虚拟机(VM)–&gt; 管理(Manage) –&gt; 克隆(Clone)</p>
+</blockquote>
+<h2 id="分别更改新镜像的IP-hostname"><a href="#分别更改新镜像的IP-hostname" class="headerlink" title="分别更改新镜像的IP, hostname"></a>分别更改新镜像的IP, hostname</h2><h2 id="设置SSH免登录"><a href="#设置SSH免登录" class="headerlink" title="设置SSH免登录"></a>设置SSH免登录</h2><ul>
+<li><p>生成公钥</p>
+<blockquote>
+<p>在gamesdoa18上执行</p>
+</blockquote>
+<pre><code>$ ssh-keygen -t rsa
+</code></pre><blockquote>
+<p>一路回车，默认值。</p>
+</blockquote>
+</li>
+<li><p>分发公钥</p>
+<pre><code>$ ssh-copy-id gamesdoa18
+$ ssh-copy-id gamesdoa19
+$ ssh-copy-id gamesdoa20
+</code></pre></li>
+<li><p>在其它主机上执行同样步骤<br>##创建相关目录##</p>
+</li>
+<li>相关文件目录都在/usr/local/app下</li>
+<li>hadoop:程序安装到/usr/local/app/hadoop/hadoop-3.1.4，数据放在/usr/local/app/hadoop/data，日志在/usr/local/app/hadoop/logs</li>
+<li><p>zookeeper ：/usr/local/app/zookeeper/zookeeper-3.4.14</p>
+<pre><code>$ for N in $(seq 18 20); do ssh -n root@gamesdoa$N mkdir /usr/local/app/zookeeper/ -p; done;
+</code></pre></li>
+<li><p>hbase ：/usr/local/app/</p>
+</li>
+<li>phoenix ：/usr/local/app/</li>
+<li>spark ：/usr/local/app/</li>
+</ul>
+<p>#安装zookeeper#</p>
+<ul>
+<li><p>在<a href="https://zookeeper.apache.org/" target="_blank" rel="external">官网</a>下载所需发布版本的zookeeper，这里我下载的版本为<a href="https://www.apache.org/dyn/closer.lua/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz" target="_blank" rel="external">Apache ZooKeeper 3.4.14</a> ,下载后进行解压：</p>
+<pre><code>$ sudo tar -zxvf zookeeper-3.4.14.tar.gz
+</code></pre></li>
+<li><p>配置环境变量(每台服务器都需要配置)</p>
+<pre><code>$ sudo vim /etc/profile
+
+export ZOOKEEPER_HOME=/usr/local/app/zookeeper/zookeeper-3.4.14
+export PATH=$PATH:$ZOOKEEPER_HOME/bin
+
+$ source /etc/profile
+</code></pre></li>
+<li><p>创建配置文件zoo.cfg</p>
+<pre><code>$ cd $ZOOKEEPER_HOME/conf
+$ sudo cp zoo-sample.cfg zoo.cfg
+$ sudo vim zoo.cfg
+
+# ZooKeeper使用的基本时间单位（以毫秒为单位）。它用于做心跳，最小会话超时将是tickTime的两倍。
+tickTime=1000
+# 表示在leader选举结束后，followers与leader同步需要的时间，如果followers比较多或者说leader的数据灰常多时，同步时间相应可能会增加，那么这个值也需要相应增加。当然，这个值也是follower和observer在开始同步leader的数据时的最大等待时间(setSoTimeout)
+initLimit=10
+# 表示follower和observer与leader交互时的最大等待时间，只不过是在与leader同步完毕之后，进入正常请求转发或ping等消息交互时的超时时间。
+syncLimit=5
+# 存储内存数据库快照的位置，除非另有说明，否则指向数据库更新的事务日志。
+dataDir=/usr/local/app/zookeeper/data/zookeeper-3.4.14
+# 用于事务日志的不同目录。
+dataLogDir=/usr/local/app/zookeeper/logs/zookeeper-3.4.14
+# 侦听客户端连接的端口
+clientPort=2181
+# http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance
+# server.serverid=host:tickpot:electionport
+# server：固定写法
+# serverid：每个服务器的指定ID（必须处于1-255之间，必须每一台机器不能重复）
+# host：主机名
+# tickpot：心跳通信端口
+# electionport：选举端口
+server.18=gamesdoa18:2888:3888
+server.19=gamesdoa19:2888:3888
+server.20=gamesdoa20:2888:3888
+</code></pre></li>
+<li><p>复制zookeeper到其它机器上</p>
+<pre><code>$ for N in $(seq 19 20); do scp -r /usr/local/app/zookeeper/zookeeper-3.4.14 -n root@gamesdoa$N:/usr/local/app/zookeeper/; done;
+</code></pre></li>
+</ul>
+<h2 id="为每台服务器创建身份标识"><a href="#为每台服务器创建身份标识" class="headerlink" title="为每台服务器创建身份标识"></a>为每台服务器创建身份标识</h2><ul>
+<li>通过创建名为 myid 的文件将每台服务器标识身份，每个服务器对应一个文件，用于服务器快速选举，该文件位于配置文件 /usr/local/app/zookeeper/zookeeper-3.4.14/conf/zoo.cfg 中的 dataDir 配置项中。
+  </li>
+<li><p>接下来，我们在配置文件 /usr/local/app/zookeeper/zookeeper-3.4.14/conf/zoo.cfg 中配置的 dataDir 目录，创建 myid 文件，内容为 server. 后面的数字，记住只能是数字：</p>
+<pre><code># gamesdoa18
+$ echo 18 &gt; /home/hadoop/data/zookeeper-3.4.14/myid
+
+# gamesdoa19
+$ echo 19 &gt; /home/hadoop/data/zookeeper-3.4.14/myid
+
+# gamesdoa20
+$ echo 20 &gt; /home/hadoop/data/zookeeper-3.4.14/myid
+</code></pre></li>
+</ul>
+<h2 id="在所有节点上启动zookeeper"><a href="#在所有节点上启动zookeeper" class="headerlink" title="在所有节点上启动zookeeper"></a>在所有节点上启动zookeeper</h2><ul>
+<li><p>在所有机器上运行 zkServer.sh start 命令启动服务，然后输入 JPS 命令，在所有节点中，您将看到 QuorumPeerMain 服务。</p>
+<pre><code>$ for N in $(seq 18 20); do ssh -n root@gamesdoa$N /usr/local/app/zookeeper/zookeeper-3.4.14/bin/zkServer.sh start; done;
+# check if success
+$ for N in $(seq 18 20); do ssh -n root@gamesdoa$N jps; done;
+44861 Jps
+12143 QuorumPeerMain
+</code></pre></li>
+</ul>
+<h1 id="安装hadoop"><a href="#安装hadoop" class="headerlink" title="安装hadoop"></a>安装hadoop</h1>]]></content>
+    
+    <summary type="html">
+    
+      记录一下手动布署hadoop集群具体步骤。
+    
+    </summary>
+    
+      <category term="大数据" scheme="http://gamesdoa.com/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/"/>
+    
+    
+      <category term="Hadoop" scheme="http://gamesdoa.com/tags/Hadoop/"/>
+    
+      <category term="Zookeeper" scheme="http://gamesdoa.com/tags/Zookeeper/"/>
+    
+      <category term="Spark" scheme="http://gamesdoa.com/tags/Spark/"/>
+    
+      <category term="HBase" scheme="http://gamesdoa.com/tags/HBase/"/>
+    
+      <category term="Phoenix" scheme="http://gamesdoa.com/tags/Phoenix/"/>
+    
+  </entry>
   
   <entry>
     <title>UOS打包符合商店的deb包</title>
@@ -2420,9 +2691,9 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
       <category term="优化" scheme="http://gamesdoa.com/categories/%E4%BC%98%E5%8C%96/"/>
     
     
-      <category term="高并发" scheme="http://gamesdoa.com/tags/%E9%AB%98%E5%B9%B6%E5%8F%91/"/>
-    
       <category term="优化" scheme="http://gamesdoa.com/tags/%E4%BC%98%E5%8C%96/"/>
+    
+      <category term="高并发" scheme="http://gamesdoa.com/tags/%E9%AB%98%E5%B9%B6%E5%8F%91/"/>
     
   </entry>
   
@@ -2496,9 +2767,9 @@ public void registerBeanDefinition(String beanName, BeanDefinition beanDefinitio
       <category term="优化" scheme="http://gamesdoa.com/categories/%E4%BC%98%E5%8C%96/"/>
     
     
-      <category term="优化" scheme="http://gamesdoa.com/tags/%E4%BC%98%E5%8C%96/"/>
-    
       <category term="大数据优化" scheme="http://gamesdoa.com/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE%E4%BC%98%E5%8C%96/"/>
+    
+      <category term="优化" scheme="http://gamesdoa.com/tags/%E4%BC%98%E5%8C%96/"/>
     
   </entry>
   
