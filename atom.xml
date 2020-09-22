@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://gamesdoa.com/"/>
-  <updated>2020-09-22T06:02:25.717Z</updated>
+  <updated>2020-09-22T06:07:44.736Z</updated>
   <id>http://gamesdoa.com/</id>
   
   <author>
@@ -20,9 +20,12 @@
     <link href="http://gamesdoa.com/hadoop-zookeeper-spark-hbase-phoenix.html"/>
     <id>http://gamesdoa.com/hadoop-zookeeper-spark-hbase-phoenix.html</id>
     <published>2020-09-17T16:00:00.000Z</published>
-    <updated>2020-09-22T06:02:25.717Z</updated>
+    <updated>2020-09-22T06:07:44.736Z</updated>
     
-    <content type="html"><![CDATA[<h1 id="集群环境：采用VMWare模拟3台主机。"><a href="#集群环境：采用VMWare模拟3台主机。" class="headerlink" title="集群环境：采用VMWare模拟3台主机。"></a>集群环境：采用VMWare模拟3台主机。</h1><table>
+    <content type="html"><![CDATA[<h1 id="集群环境"><a href="#集群环境" class="headerlink" title="集群环境"></a>集群环境</h1><blockquote>
+<p>采用VMWare模拟3台主机。</p>
+</blockquote>
+<table>
 <thead>
 <tr>
 <th style="text-align:center">IP 地址</th>
@@ -60,7 +63,10 @@
 </tr>
 </tbody>
 </table>
-<h2 id="用VMWare-Workstation准备虚拟环境，安装CentOS-7-8"><a href="#用VMWare-Workstation准备虚拟环境，安装CentOS-7-8" class="headerlink" title="用VMWare Workstation准备虚拟环境，安装CentOS 7.8"></a>用VMWare Workstation准备虚拟环境，安装CentOS 7.8</h2><h3 id="配置主机名及IP"><a href="#配置主机名及IP" class="headerlink" title="配置主机名及IP"></a><strong>配置主机名及IP</strong></h3><ul>
+<h2 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h2><blockquote>
+<p>用VMWare Workstation准备虚拟环境，安装CentOS 7.8</p>
+</blockquote>
+<h3 id="配置主机名及IP"><a href="#配置主机名及IP" class="headerlink" title="配置主机名及IP"></a><strong>配置主机名及IP</strong></h3><ul>
 <li><p>配置主机名</p>
 <pre><code>$ hostnamectl set-hostname gamesdoa18
 $ hostname
