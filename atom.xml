@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://gamesdoa.com/"/>
-  <updated>2020-09-22T05:42:13.120Z</updated>
+  <updated>2020-09-22T05:52:28.040Z</updated>
   <id>http://gamesdoa.com/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="http://gamesdoa.com/hadoop-zookeeper-spark-hbase-phoenix.html"/>
     <id>http://gamesdoa.com/hadoop-zookeeper-spark-hbase-phoenix.html</id>
     <published>2020-09-17T16:00:00.000Z</published>
-    <updated>2020-09-22T05:42:13.120Z</updated>
+    <updated>2020-09-22T05:52:28.040Z</updated>
     
     <content type="html"><![CDATA[<h1 id="集群环境：采用VMWare模拟3台主机。"><a href="#集群环境：采用VMWare模拟3台主机。" class="headerlink" title="集群环境：采用VMWare模拟3台主机。"></a>集群环境：采用VMWare模拟3台主机。</h1><p>–</p>
 <table>
@@ -164,7 +164,7 @@ Removed symlink /etc/systemd/system/dbus-org.fedoraproject.FirewallD1.service.
 SELinux status:                 disabled
 </code></pre></li>
 </ul>
-<h2 id="Clone两个新的镜像"><a href="#Clone两个新的镜像" class="headerlink" title="Clone两个新的镜像"></a>Clone两个新的镜像</h2><p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/clone.png" alt="克隆步骤"></p>
+<h2 id="Clone两个新的镜像"><a href="#Clone两个新的镜像" class="headerlink" title="Clone两个新的镜像"></a>Clone两个新的镜像</h2><p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/clone.jpg" alt="克隆步骤"></p>
 <blockquote>
 <p>虚拟机(VM)–&gt; 管理(Manage) –&gt; 克隆(Clone)</p>
 </blockquote>
@@ -261,8 +261,7 @@ export PATH=${HADOOP_HOME}/bin:$PATH
 
 # source /etc/profile
 </code></pre><h2 id="修改配置"><a href="#修改配置" class="headerlink" title="修改配置"></a>修改配置</h2><ul>
-<li>编辑 $HADOOP_HOME/etc/hadoop/core-site.xml</li>
-</ul>
+<li><p>编辑 $HADOOP_HOME/etc/hadoop/core-site.xml</p>
 <pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;?xml-stylesheet type=&quot;text/xsl&quot; href=&quot;configuration.xsl&quot;?&gt;
 &lt;configuration&gt;
@@ -307,7 +306,9 @@ export PATH=${HADOOP_HOME}/bin:$PATH
         &lt;description&gt;客户端在重试建立服务器连接之前将等待的毫秒数。&lt;/description&gt;
     &lt;/property&gt;
 &lt;/configuration&gt;
-</code></pre><ul>
+</code></pre></li>
+</ul>
+<ul>
 <li><p>编辑$HADOOP_HOME/etc/hadoop/hdfs-site.xml</p>
 <pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;?xml-stylesheet type=&quot;text/xsl&quot; href=&quot;configuration.xsl&quot;?&gt;
@@ -680,34 +681,34 @@ export PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
 </code></pre><h2 id="运行环境配置"><a href="#运行环境配置" class="headerlink" title="运行环境配置"></a>运行环境配置</h2><blockquote>
 <p>进入 ${SPARK_HOME}/conf 目录，拷贝配置样本进行修改：</p>
 </blockquote>
-<pre><code>   # cp spark-env.sh.template spark-env.sh
+<pre><code># cp spark-env.sh.template spark-env.sh
+</code></pre><blockquote>
+<p>spark-env.sh中添加内容 vim  spark-env.sh</p>
+</blockquote>
+<pre><code># 配置JDK安装位置
+export JAVA_HOME=/usr/local/java/jdk1.8.0_261
+# 配置hadoop配置文件的位置
+export HADOOP_CONF_DIR=/usr/local/app/hadoop/hadoop-3.1.4
+# 配置zookeeper地址
+export SPARK_DAEMON_JAVA_OPTS=&quot;-Dspark.deploy.recoveryMode=ZOOKEEPER -Dspark.deploy.zookeeper.url=gamesdoa18:2181,gamesdoa19:2181,gamesdoa20:2181 -Dspark.deploy.zookeeper.dir=/spark-2.4.7&quot;
+export SPARK_LOG_DIR=/usr/local/app/spark/logs/spark-2.4.7-bin-hadoop2.7
+# Spark Work内存使用量
+export SPARK_WORKER_MEMORY=512M
 
-&gt; spark-env.sh中添加内容 vim  spark-env.sh
+# 该参数决定了yarn集群中，最多能够同时启动的EXECUTOR的实例个数。
+export SPARK_EXECUTOR_INSTANCES=3
 
-   # 配置JDK安装位置
-   export JAVA_HOME=/usr/local/java/jdk1.8.0_261
-   # 配置hadoop配置文件的位置
-   export HADOOP_CONF_DIR=/usr/local/app/hadoop/hadoop-3.1.4
-   # 配置zookeeper地址
-   export SPARK_DAEMON_JAVA_OPTS=&quot;-Dspark.deploy.recoveryMode=ZOOKEEPER -Dspark.deploy.zookeeper.url=gamesdoa18:2181,gamesdoa19:2181,gamesdoa20:2181 -Dspark.deploy.zookeeper.dir=/spark-2.4.7&quot;
-   export SPARK_LOG_DIR=/usr/local/app/spark/logs/spark-2.4.7-bin-hadoop2.7
-   # Spark Work内存使用量
-   export SPARK_WORKER_MEMORY=512M
+# 设置每个EXECUTOR能够使用的CPU core的数量。
+export SPARK_EXECUTOR_CORES=3
 
-   # 该参数决定了yarn集群中，最多能够同时启动的EXECUTOR的实例个数。
-   export SPARK_EXECUTOR_INSTANCES=3
+# 该参数设置的是每个EXECUTOR分配的内存的数量
+export SPARK_EXECUTOR_MEMORY=512M
 
-   # 设置每个EXECUTOR能够使用的CPU core的数量。
-   export SPARK_EXECUTOR_CORES=3
+#该参数设置的是DRIVER分配的内存的大小
+export SPARK_DRIVER_MEMORY=1G
 
-   # 该参数设置的是每个EXECUTOR分配的内存的数量
-   export SPARK_EXECUTOR_MEMORY=512M
-
-   #该参数设置的是DRIVER分配的内存的大小
-   export SPARK_DRIVER_MEMORY=1G
-
-   # Spark Application在Yarn中的名字
-   export SPARK_YARN_APP_NAME=&quot;gamesdoa.Spark-2.4.7&quot;
+# Spark Application在Yarn中的名字
+export SPARK_YARN_APP_NAME=&quot;gamesdoa.Spark-2.4.7&quot;
 </code></pre><h2 id="系统配置"><a href="#系统配置" class="headerlink" title="系统配置"></a>系统配置</h2><pre><code># cp spark-defaults.conf.template  spark-defaults.conf
 </code></pre><blockquote>
 <p>spark-defaults.conf中添加内容 vim  spark-defaults.conf</p>
@@ -767,7 +768,7 @@ gamesdoa20
 [gamesdoa18] # /usr/local/app/spark/spark-2.4.7-bin-hadoop2.7/bin/spark-shell
 # test cluster
 [gamesdoa18] # /usr/local/app/spark/spark-2.4.7-bin-hadoop2.7/bin/spark-shell --master yarn --deploy-mode client
-</code></pre><p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/spark_start.png" alt="启动"></p>
+</code></pre><p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/spark_start.jpg" alt="启动"></p>
 <h1 id="安装HBase"><a href="#安装HBase" class="headerlink" title="安装HBase"></a>安装HBase</h1><h2 id="下载安装包-2"><a href="#下载安装包-2" class="headerlink" title="下载安装包"></a>下载安装包</h2><blockquote>
 <p>在<a href="https://hbase.apache.org/" target="_blank" rel="external">官网</a>下载所需发布版本的Spark，这里我下载的版本为<a href="https://hbase.apache.org/downloads.html" target="_blank" rel="external">Apache HBase 2.2.5</a> ,下载后进行解压：</p>
 </blockquote>
@@ -856,7 +857,7 @@ gamesdoa20
     &gt;list
     &gt;version
     &gt;quit
-</code></pre><p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/HBASE_start.png" alt="启动"><br><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/hbase_webui.png" alt="可视化查看"></p>
+</code></pre><p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/HBASE_start.jpg" alt="启动"><br><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/hbase_webui.jpg" alt="可视化查看"></p>
 <h1 id="安装Phoenix-5-0-0-HBase-2-0"><a href="#安装Phoenix-5-0-0-HBase-2-0" class="headerlink" title="安装Phoenix_5.0.0_HBase_2.0"></a>安装Phoenix_5.0.0_HBase_2.0</h1><h2 id="下载安装包-3"><a href="#下载安装包-3" class="headerlink" title="下载安装包"></a>下载安装包</h2><blockquote>
 <p>在<a href="https://phoenix.apache.org/" target="_blank" rel="external">官网</a>下载所需发布版本的phoenix，这里我下载的版本为<a href="https://phoenix.apache.org/download.html" target="_blank" rel="external">Apache Phoenix 5.0.0-HBase-2.0</a>,下载后进行解压：</p>
 </blockquote>
