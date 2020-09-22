@@ -106,7 +106,7 @@
 <meta property="og:image" content="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/spark_start.png">
 <meta property="og:image" content="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/HBASE_start.png">
 <meta property="og:image" content="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/hbase_webui.png">
-<meta property="og:updated_time" content="2020-09-22T05:23:15.448Z">
+<meta property="og:updated_time" content="2020-09-22T05:42:13.120Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hadoop 3.1.4 + Zookeeper 3.4.14 + Spark 2.4.7 + HBase 2.2.5 + Phoenix 5.0.0 高可用集群部署">
 <meta name="twitter:description" content="记录一下手动布署hadoop集群具体步骤。">
@@ -571,33 +571,27 @@ SELinux status:                 disabled
 $ ssh-copy-id gamesdoa19
 $ ssh-copy-id gamesdoa20
 </code></pre></li>
-<li><p>在其它主机上执行同样步骤<br>##创建相关目录##</p>
-</li>
+<li><p>在其它主机上执行同样步骤</p>
+<h2 id="创建相关目录"><a href="#创建相关目录" class="headerlink" title="创建相关目录"></a>创建相关目录</h2></li>
 <li>相关文件目录都在/usr/local/app下</li>
 <li>hadoop:程序安装到/usr/local/app/hadoop/hadoop-3.1.4，数据放在/usr/local/app/hadoop/data，日志在/usr/local/app/hadoop/hadoop-3.1.4/logs</li>
 <li><p>zookeeper ：/usr/local/app/zookeeper/zookeeper-3.4.14</p>
 <pre><code>$ for N in $(seq 18 20); do ssh -n root@gamesdoa$N mkdir /usr/local/app/zookeeper/ -p; done;
 </code></pre></li>
-<li><p>hbase ：/usr/local/app/</p>
+<li><p>hbase ：/usr/local/app/hbase/hbase-2.2.5</p>
 </li>
-<li>phoenix ：/usr/local/app/</li>
-<li>spark ：/usr/local/app/</li>
+<li>phoenix ：/usr/local/app/apache-phoenix-5.0.0-HBase-2.0-bin</li>
+<li>spark ：/usr/local/app/spark/spark-2.4.7-bin-hadoop2.7</li>
 </ul>
-<p>#安装zookeeper#</p>
-<ul>
-<li><p>在<a href="https://zookeeper.apache.org/" target="_blank" rel="external">官网</a>下载所需发布版本的zookeeper，这里我下载的版本为<a href="https://www.apache.org/dyn/closer.lua/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz" target="_blank" rel="external">Apache ZooKeeper 3.4.14</a> ,下载后进行解压：</p>
+<h1 id="安装zookeeper"><a href="#安装zookeeper" class="headerlink" title="安装zookeeper"></a>安装zookeeper</h1><h2 id="下载安装包"><a href="#下载安装包" class="headerlink" title="下载安装包"></a>下载安装包</h2><p>在<a href="https://zookeeper.apache.org/" target="_blank" rel="external">官网</a>下载所需发布版本的zookeeper，这里我下载的版本为<a href="https://www.apache.org/dyn/closer.lua/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz" target="_blank" rel="external">Apache ZooKeeper 3.4.14</a> ,下载后进行解压：</p>
 <pre><code>$ sudo tar -zxvf zookeeper-3.4.14.tar.gz
-</code></pre></li>
-<li><p>配置环境变量(每台服务器都需要配置)</p>
-<pre><code>$ sudo vim /etc/profile
+</code></pre><h2 id="配置环境变量-每台服务器都需要配置"><a href="#配置环境变量-每台服务器都需要配置" class="headerlink" title="配置环境变量(每台服务器都需要配置)"></a>配置环境变量(每台服务器都需要配置)</h2><pre><code>$ sudo vim /etc/profile
 
 export ZOOKEEPER_HOME=/usr/local/app/zookeeper/zookeeper-3.4.14
 export PATH=$PATH:$ZOOKEEPER_HOME/bin
 
 $ source /etc/profile
-</code></pre></li>
-<li><p>创建配置文件zoo.cfg</p>
-<pre><code>$ cd $ZOOKEEPER_HOME/conf
+</code></pre><h2 id="创建配置文件zoo-cfg"><a href="#创建配置文件zoo-cfg" class="headerlink" title="创建配置文件zoo.cfg"></a>创建配置文件zoo.cfg</h2><pre><code>$ cd $ZOOKEEPER_HOME/conf
 $ sudo cp zoo-sample.cfg zoo.cfg
 $ sudo vim zoo.cfg
 
@@ -623,12 +617,8 @@ clientPort=2181
 server.18=gamesdoa18:2888:3888
 server.19=gamesdoa19:2888:3888
 server.20=gamesdoa20:2888:3888
-</code></pre></li>
-<li><p>复制zookeeper到其它机器上</p>
-<pre><code>$ for N in $(seq 19 20); do scp -r /usr/local/app/zookeeper/zookeeper-3.4.14 -n root@gamesdoa$N:/usr/local/app/zookeeper/; done;
-</code></pre></li>
-</ul>
-<h2 id="为每台服务器创建身份标识"><a href="#为每台服务器创建身份标识" class="headerlink" title="为每台服务器创建身份标识"></a>为每台服务器创建身份标识</h2><ul>
+</code></pre><h2 id="复制zookeeper到其它机器上"><a href="#复制zookeeper到其它机器上" class="headerlink" title="复制zookeeper到其它机器上"></a>复制zookeeper到其它机器上</h2><pre><code>$ for N in $(seq 19 20); do scp -r /usr/local/app/zookeeper/zookeeper-3.4.14 -n root@gamesdoa$N:/usr/local/app/zookeeper/; done;
+</code></pre><h2 id="为每台服务器创建身份标识"><a href="#为每台服务器创建身份标识" class="headerlink" title="为每台服务器创建身份标识"></a>为每台服务器创建身份标识</h2><ul>
 <li>通过创建名为 myid 的文件将每台服务器标识身份，每个服务器对应一个文件，用于服务器快速选举，该文件位于配置文件 /usr/local/app/zookeeper/zookeeper-3.4.14/conf/zoo.cfg 中的 dataDir 配置项中。
   </li>
 <li><p>接下来，我们在配置文件 /usr/local/app/zookeeper/zookeeper-3.4.14/conf/zoo.cfg 中配置的 dataDir 目录，创建 myid 文件，内容为 server. 后面的数字，记住只能是数字：</p>
@@ -642,408 +632,389 @@ $ echo 19 &gt; /usr/local/app/zookeeper/data/zookeeper-3.4.14/myid
 $ echo 20 &gt; /usr/local/app/zookeeper/data/zookeeper-3.4.14/myid
 </code></pre></li>
 </ul>
-<h2 id="在所有节点上启动zookeeper"><a href="#在所有节点上启动zookeeper" class="headerlink" title="在所有节点上启动zookeeper"></a>在所有节点上启动zookeeper</h2><ul>
-<li><p>在所有机器上运行 zkServer.sh start 命令启动服务，然后输入 JPS 命令，在所有节点中，您将看到 QuorumPeerMain 服务。</p>
+<h2 id="在所有节点上启动zookeeper"><a href="#在所有节点上启动zookeeper" class="headerlink" title="在所有节点上启动zookeeper"></a>在所有节点上启动zookeeper</h2><p> 在所有机器上运行 zkServer.sh start 命令启动服务，然后输入 JPS 命令，在所有节点中，您将看到 QuorumPeerMain 服务。</p>
 <pre><code># for N in $(seq 18 20); do ssh -n gamesdoa$N /usr/local/app/zookeeper/zookeeper-3.4.14/bin/zkServer.sh start; done;
 # check if success
 # for N in $(seq 18 20); do ssh -n gamesdoa$N /usr/local/java/jdk1.8.0_261/bin/jps; done;
 44861 Jps
 12143 QuorumPeerMain
-</code></pre></li>
-</ul>
-<h1 id="安装hadoop"><a href="#安装hadoop" class="headerlink" title="安装hadoop"></a>安装hadoop</h1><ul>
-<li><p>在<a href="https://hadoop.apache.org/" target="_blank" rel="external">官网</a>下载所需发布版本的hadoop，这里我下载的版本为<a href="https://www.apache.org/dyn/closer.cgi/hadoop/common/hadoop-3.1.4/hadoop-3.1.4.tar.gz" target="_blank" rel="external">Apache Hadoop 3.1.4</a> ,下载后进行解压：</p>
+</code></pre><h1 id="安装hadoop"><a href="#安装hadoop" class="headerlink" title="安装hadoop"></a>安装hadoop</h1><h2 id="下载安装包-1"><a href="#下载安装包-1" class="headerlink" title="下载安装包"></a>下载安装包</h2><p> 在<a href="https://hadoop.apache.org/" target="_blank" rel="external">官网</a>下载所需发布版本的hadoop，这里我下载的版本为<a href="https://www.apache.org/dyn/closer.cgi/hadoop/common/hadoop-3.1.4/hadoop-3.1.4.tar.gz" target="_blank" rel="external">Apache Hadoop 3.1.4</a> ,下载后进行解压：</p>
 <pre><code># tar -zxvf hadoop-3.1.4.tar.gz
-</code></pre></li>
-<li><p>配置环境变量(每台服务器都需要配置)</p>
-<pre><code># vim /etc/profile
+</code></pre><h2 id="配置环境变量-每台服务器都需要配置-1"><a href="#配置环境变量-每台服务器都需要配置-1" class="headerlink" title="配置环境变量(每台服务器都需要配置)"></a>配置环境变量(每台服务器都需要配置)</h2><pre><code># vim /etc/profile
 
 export HADOOP_HOME=/usr/local/app/hadoop/hadoop-3.1.4
 export PATH=${HADOOP_HOME}/bin:$PATH
-</code></pre><p>  执行 source 命令，使得配置立即生效：</p>
-<pre><code># source /etc/profile
-</code></pre></li>
-<li><p>修改配置</p>
-</li>
+
+执行 source 命令，使得配置立即生效：
+
+# source /etc/profile
+</code></pre><h2 id="修改配置"><a href="#修改配置" class="headerlink" title="修改配置"></a>修改配置</h2><ul>
+<li>编辑 $HADOOP_HOME/etc/hadoop/core-site.xml</li>
 </ul>
-<pre><code>&gt; 编辑 $HADOOP_HOME/etc/hadoop/core-site.xml
-
-
-    &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-    &lt;?xml-stylesheet type=&quot;text/xsl&quot; href=&quot;configuration.xsl&quot;?&gt;
-    &lt;configuration&gt;
-        &lt;property&gt;
-            &lt;name&gt;fs.defaultFS&lt;/name&gt;
-            &lt;value&gt;hdfs://gamesdoadata&lt;/value&gt;
-            &lt;description&gt;默认文件系统的名称。一个URI，其方案和权限决定了FileSystem的实现。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;ha.zookeeper.quorum&lt;/name&gt;
-            &lt;value&gt;gamesdoa18:2181,gamesdoa19:2181,gamesdoa20:2181&lt;/value&gt;
-            &lt;description&gt;由逗号分隔的ZooKeeper服务器地址列表，由ZKFailoverController在自动故障转移中使用。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;hadoop.tmp.dir&lt;/name&gt;
-            &lt;value&gt;/usr/local/app/hadoop/data/hadoop-3.1.4&lt;/value&gt;
-            &lt;description&gt;数据目录目录,在hdfs-site.xml中会有引用&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.ha.fencing.methods&lt;/name&gt;
-            &lt;value&gt;sshfence&lt;/value&gt;
-            &lt;description&gt;用于服务防护的防护方法列表。可能包含内置方法（例如shell和sshfence）或用户定义的方法。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.ha.fencing.ssh.private-key-files&lt;/name&gt;
-            &lt;value&gt;/root/.ssh/id_rsa&lt;/value&gt;
-            &lt;description&gt;用于内置sshfence fencer的SSH私钥文件。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;io.file.buffer.size&lt;/name&gt;
-            &lt;value&gt;131072&lt;/value&gt;
-            &lt;description&gt;SequenceFiles中使用的读/写缓冲区的大小。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;ipc.client.connect.max.retries&lt;/name&gt;
-            &lt;value&gt;100&lt;/value&gt;
-            &lt;description&gt;客户端为建立服务器连接而重试的次数。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;ipc.client.connect.retry.interval&lt;/name&gt;
-            &lt;value&gt;5000&lt;/value&gt;
-            &lt;description&gt;客户端在重试建立服务器连接之前将等待的毫秒数。&lt;/description&gt;
-        &lt;/property&gt;
-    &lt;/configuration&gt;
-
-
-&gt;编辑$HADOOP_HOME/etc/hadoop/hdfs-site.xml
-
-    &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-    &lt;?xml-stylesheet type=&quot;text/xsl&quot; href=&quot;configuration.xsl&quot;?&gt;
-    &lt;configuration&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.nameservices&lt;/name&gt;
-            &lt;value&gt;gamesdoadata&lt;/value&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.ha.namenodes.gamesdoadata&lt;/name&gt;
-            &lt;value&gt;gamesdoa18,gamesdoa19,gamesdoa20&lt;/value&gt;
-            &lt;description&gt;给定名称服务的前缀包含给定名称服务的逗号分隔的名称节点列表。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.namenode.rpc-address.gamesdoadata.gamesdoa18&lt;/name&gt;
-            &lt;value&gt;gamesdoa18:8020&lt;/value&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.namenode.rpc-address.gamesdoadata.gamesdoa19&lt;/name&gt;
-            &lt;value&gt;gamesdoa19:8020&lt;/value&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.namenode.rpc-address.gamesdoadata.gamesdoa20&lt;/name&gt;
-            &lt;value&gt;gamesdoa20:8020&lt;/value&gt;
-        &lt;/property&gt;
-
-        &lt;property&gt;
-            &lt;name&gt;dfs.namenode.http-address.gamesdoadata.gamesdoa18&lt;/name&gt;
-            &lt;value&gt;gamesdoa18:50070&lt;/value&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.namenode.http-address.gamesdoadata.gamesdoa19&lt;/name&gt;
-            &lt;value&gt;gamesdoa19:50070&lt;/value&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.namenode.http-address.gamesdoadata.gamesdoa20&lt;/name&gt;
-            &lt;value&gt;gamesdoa20:50070&lt;/value&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.namenode.shared.edits.dir&lt;/name&gt;
-            &lt;value&gt;qjournal://gamesdoa18:8485;gamesdoa19:8485;gamesdoa20:8485/gamesdoadata&lt;/value&gt;
-            &lt;description&gt;HA群集中多个名称节点之间的共享存储上的目录。
-                此目录将由活动写入并由备用数据库读取，以保持命名空间同步。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.client.failover.proxy.provider.gamesdoadata&lt;/name&gt;
-            &lt;value&gt;org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider&lt;/value&gt;
-            &lt;description&gt;配置Java类的名称，DFS客户端将使用该名称来确定哪个NameNode是当前的Active，
-                以及哪个NameNode当前正在为客户端请求提供服务。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.ha.automatic-failover.enabled&lt;/name&gt;
-            &lt;value&gt;true&lt;/value&gt;
-            &lt;description&gt;是否启用自动故障转移。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.replication&lt;/name&gt;
-            &lt;value&gt;3&lt;/value&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.permissions.enabled&lt;/name&gt;
-            &lt;value&gt;false&lt;/value&gt;
-            &lt;description&gt;如果为“true”，则启用HDFS中的权限检查。如果为“false”，则关闭权限检查，但所有其他行为都保持不变。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.journalnode.edits.dir&lt;/name&gt;
-            &lt;value&gt;${hadoop.tmp.dir}/journalnode&lt;/value&gt;
-            &lt;description&gt;指定JournalNode在本地磁盘存放数据的位置&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.namenode.name.dir&lt;/name&gt;
-            &lt;value&gt;file://${hadoop.tmp.dir}/namenode&lt;/value&gt;
-            &lt;description&gt;设置namenode存放路径&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.datanode.data.dir&lt;/name&gt;
-            &lt;value&gt;file://${hadoop.tmp.dir}/datanode&lt;/value&gt;
-            &lt;description&gt;设置datanode存放径路&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.blocksize&lt;/name&gt;
-            &lt;value&gt;268435456&lt;/value&gt;
-            &lt;description&gt;大型文件系统的HDFS块大小为256MB。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;dfs.namenode.handler.count&lt;/name&gt;
-            &lt;value&gt;100&lt;/value&gt;
-            &lt;description&gt;namenode的服务器线程数&lt;/description&gt;
-        &lt;/property&gt;
-    &lt;/configuration&gt;
-
-
-&gt;编辑$HADOOP_HOME/etc/hadoop/mapred.site.xml
-
-    &lt;?xml version=&quot;1.0&quot;?&gt;
-    &lt;?xml-stylesheet type=&quot;text/xsl&quot; href=&quot;configuration.xsl&quot;?&gt;
-    &lt;configuration&gt;
-        &lt;property&gt;
-            &lt;name&gt;mapreduce.framework.name&lt;/name&gt;
-            &lt;value&gt;yarn&lt;/value&gt;
-            &lt;description&gt;指定mr框架为yarn方式&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;mapreduce.map.memory.mb&lt;/name&gt;
-            &lt;value&gt;512&lt;/value&gt;
-            &lt;description&gt;每个Map任务的物理内存限制&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;mapreduce.reduce.memory.mb&lt;/name&gt;
-            &lt;value&gt;512&lt;/value&gt;
-            &lt;description&gt;每个Reduce任务的物理内存限制&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;mapreduce.jobhistory.address&lt;/name&gt;
-            &lt;value&gt;0.0.0.0:10020&lt;/value&gt;
-            &lt;description&gt;MapReduce JobHistory服务器IPC主机：端口&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;mapreduce.jobhistory.webapp.address&lt;/name&gt;
-            &lt;value&gt;0.0.0.0:19888&lt;/value&gt;
-            &lt;description&gt;MapReduce JobHistory服务器Web浏览时的主机：端口&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;mapreduce.application.classpath&lt;/name&gt;
-            &lt;value&gt;
-                    /usr/local/app/hadoop/hadoop-3.1.4/etc/hadoop,
-                    /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/common/*,
-                    /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/common/lib/*,
-                    /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/hdfs/*,
-                    /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/hdfs/lib/*,
-                    /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/mapreduce/*,
-                    /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/mapreduce/lib/*,
-                    /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/yarn/*,
-                    /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/yarn/lib/*
-            &lt;/value&gt;
-        &lt;/property&gt;
-    &lt;/configuration&gt;
-
-
-&gt;编辑$HADOOP_HOME/etc/hadoop/capacity-scheduler.xml
-
-
-&gt;编辑$HADOOP_HOME/etc/hadoop/yarn-site.xml
-
-    &lt;?xml version=&quot;1.0&quot;?&gt;
-    &lt;configuration&gt;
-    &lt;!-- Site specific YARN configuration properties --&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.resourcemanager.recovery.enabled&lt;/name&gt;
-            &lt;value&gt;true&lt;/value&gt;
-            &lt;description&gt;启动后启用RM以恢复状态。如果为true，则必须指定yarn.resourcemanager.store.class。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.resourcemanager.store.class&lt;/name&gt;
-            &lt;value&gt;org.apache.hadoop.yarn.server.resourcemanager.recovery.ZKRMStateStore&lt;/value&gt;
-            &lt;description&gt;用作持久存储的类。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.resourcemanager.zk-address&lt;/name&gt;
-            &lt;value&gt;gamesdoa18:2181,gamesdoa19:2181,gamesdoa20&lt;/value&gt;
-            &lt;description&gt;ZooKeeper服务的地址，多个地址使用逗号隔开&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.resourcemanager.ha.enabled&lt;/name&gt;
-            &lt;value&gt;true&lt;/value&gt;
-            &lt;description&gt;启用RM高可用性。启用时，（1）默认情况下，RM以待机模式启动，并在提示时转换为活动模式。（2）RM集合中的节点列在yarn.resourcemanager.ha.rm-ids中（3）如果明确指定了yarn.resourcemanager.ha.id，则每个RM的id来自yarn.resourcemanager.ha.id或者可以通过匹配yarn.resourcemanager.address。&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.resourcemanager.ha.rm-ids&lt;/name&gt;
-            &lt;value&gt;rm18,rm19,rm20&lt;/value&gt;
-            &lt;description&gt;启用HA时群集中的RM节点列表。最少2个,具体配置见下&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.resourcemanager.webapp.address.rm18&lt;/name&gt;
-            &lt;value&gt;gamesdoa18:8088&lt;/value&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.resourcemanager.webapp.address.rm19&lt;/name&gt;
-            &lt;value&gt;gamesdoa19:8088&lt;/value&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.resourcemanager.webapp.address.rm20&lt;/name&gt;
-            &lt;value&gt;gamesdoa20:8088&lt;/value&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.resourcemanager.cluster-id&lt;/name&gt;
-            &lt;value&gt;bd-yarn-ha&lt;/value&gt;
-            &lt;description&gt;集群HA的id，用于在ZooKeeper上创建节点，区分使用同一个ZooKeeper集群的不同Hadoop集群&lt;/description&gt;
-            &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.resourcemanager.hostname.rm18&lt;/name&gt;
-            &lt;value&gt;gamesdoa18&lt;/value&gt;
-            &lt;description&gt;主机名&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.resourcemanager.hostname.rm19&lt;/name&gt;
-            &lt;value&gt;gamesdoa19&lt;/value&gt;
-            &lt;description&gt;主机名&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.resourcemanager.hostname.rm20&lt;/name&gt;
-            &lt;value&gt;gamesdoa20&lt;/value&gt;
-            &lt;description&gt;主机名&lt;/description&gt;
-        &lt;/property&gt;
-
-        &lt;property&gt;
-            &lt;name&gt;yarn.nodemanager.aux-services&lt;/name&gt;
-            &lt;value&gt;mapreduce_shuffle&lt;/value&gt;
-            &lt;description&gt;reducer取数据的方式是mapreduce_shuffle&lt;/description&gt;
-        &lt;/property&gt;
-        &lt;property&gt;  
-            &lt;name&gt;yarn.nodemanager.resource.memory-mb&lt;/name&gt;  
-            &lt;value&gt;2048&lt;/value&gt;  
-            &lt;discription&gt;每个节点可用内存,单位MB&lt;/discription&gt;  
-        &lt;/property&gt; 
-        &lt;property&gt;  
-            &lt;name&gt;yarn.nodemanager.resource.cpu-vcores&lt;/name&gt;  
-            &lt;value&gt;2&lt;/value&gt;  
-            &lt;discription&gt;每个节点可用cpu&lt;/discription&gt;
-        &lt;/property&gt;   
-        &lt;property&gt;  
-            &lt;name&gt;yarn.scheduler.minimum-allocation-mb&lt;/name&gt;  
-            &lt;value&gt;512&lt;/value&gt;  
-            &lt;discription&gt;单个任务可申请最少内存，默认1024MB&lt;/discription&gt;  
-        &lt;/property&gt;  
-        &lt;property&gt;  
-            &lt;name&gt;yarn.scheduler.maximum-allocation-mb&lt;/name&gt;  
-            &lt;value&gt;1024&lt;/value&gt;  
-            &lt;discription&gt;单个任务可申请最大内存，默认8192MB&lt;/discription&gt;  
-        &lt;/property&gt; 
-        &lt;property&gt;  
-            &lt;name&gt;yarn.scheduler.minimum-allocation-vcores&lt;/name&gt;  
-            &lt;value&gt;1&lt;/value&gt;  
-            &lt;discription&gt;最小的cores 1 个，默认的就是一个&lt;/discription&gt;  
-        &lt;/property&gt; 
-        &lt;property&gt;  
-            &lt;name&gt;yarn.scheduler.minimum-allocation-vcores&lt;/name&gt;  
-            &lt;value&gt;2&lt;/value&gt;  
-            &lt;discription&gt;最多可分配的cores 2 个&lt;/discription&gt;  
-        &lt;/property&gt; 
-        &lt;property&gt;
-            &lt;name&gt;yarn.nodemanager.pmem-check-enabled&lt;/name&gt;
-            &lt;value&gt;false&lt;/value&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.nodemanager.vmem-check-enabled&lt;/name&gt;
-            &lt;value&gt;false&lt;/value&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.log-aggregation-enable&lt;/name&gt;
-            &lt;value&gt;true&lt;/value&gt;
-            &lt;discription&gt;是否开启聚合日志&lt;/discription&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.nodemanager.log-aggregation.roll-monitoring-interval-seconds&lt;/name&gt;
-            &lt;value&gt;-1&lt;/value&gt;
-            &lt;discription&gt;定义NM唤醒上载日志文件的频率。默认值为-1。默认情况下，应用程序完成后将上载日志。通过设置此配置，可以在应用程序运行时定期上载日志。可设置的最小滚动间隔秒数为3600。&lt;/discription&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.log.server.url&lt;/name&gt;
-            &lt;value&gt;http://c0:19888/jobhistory/logs&lt;/value&gt;
-            &lt;discription&gt; 配置日志服务器的地址&lt;/discription&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.log-aggregation.retain-seconds&lt;/name&gt;
-            &lt;value&gt;-1&lt;/value&gt;
-            &lt;discription&gt; 在删除聚合日志之前保留多长时间。-1禁用。单位是秒&lt;/discription&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.nodemanager.log-dirs&lt;/name&gt;
-            &lt;value&gt;/usr/local/app/hadoop/data/hadoop-3.1.4/yarn/container-logs/&lt;/value&gt;
-            &lt;discription&gt;nodemanager存放container日志的本地路径&lt;/discription&gt;
-        &lt;/property&gt;
-        &lt;property&gt;
-            &lt;name&gt;yarn.nodemanager.remote-app-log-dir&lt;/name&gt;
-            &lt;value&gt;/tmp/logs&lt;/value&gt;
-            &lt;discription&gt;nodemanager存放container日志的本地路径&lt;/discription&gt;
-        &lt;/property&gt;
-    &lt;/configuration&gt;
-
-
-&gt;编辑$HADOOP_HOME/etc/hadoop/hadoop-env.sh
-
-    export JAVA_HOME=/usr/local/java/jdk1.8.0_261
-    HDFS_DATANODE_USER=hadoop
-    # HDFS_DATANODE_SECURE_USER=
-    HDFS_ZKFC_USER=hadoop
-    HDFS_JOURNALNODE_USER=hadoop
-    HDFS_NAMENODE_USER=hadoop
-    HDFS_SECONDARYNAMENODE_USER=hadoop
-
-    YARN_RESOURCEMANAGER_USER=hadoop
-    YARN_NODEMANAGER_USER=hadoop
-
-&gt;编辑$HADOOP_HOME/etc/hadoop/workers
-
-    gamesdoa18
-    gamesdoa19
-    gamesdoa20
+<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;?xml-stylesheet type=&quot;text/xsl&quot; href=&quot;configuration.xsl&quot;?&gt;
+&lt;configuration&gt;
+    &lt;property&gt;
+        &lt;name&gt;fs.defaultFS&lt;/name&gt;
+        &lt;value&gt;hdfs://gamesdoadata&lt;/value&gt;
+        &lt;description&gt;默认文件系统的名称。一个URI，其方案和权限决定了FileSystem的实现。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;ha.zookeeper.quorum&lt;/name&gt;
+        &lt;value&gt;gamesdoa18:2181,gamesdoa19:2181,gamesdoa20:2181&lt;/value&gt;
+        &lt;description&gt;由逗号分隔的ZooKeeper服务器地址列表，由ZKFailoverController在自动故障转移中使用。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;hadoop.tmp.dir&lt;/name&gt;
+        &lt;value&gt;/usr/local/app/hadoop/data/hadoop-3.1.4&lt;/value&gt;
+        &lt;description&gt;数据目录目录,在hdfs-site.xml中会有引用&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.ha.fencing.methods&lt;/name&gt;
+        &lt;value&gt;sshfence&lt;/value&gt;
+        &lt;description&gt;用于服务防护的防护方法列表。可能包含内置方法（例如shell和sshfence）或用户定义的方法。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.ha.fencing.ssh.private-key-files&lt;/name&gt;
+        &lt;value&gt;/root/.ssh/id_rsa&lt;/value&gt;
+        &lt;description&gt;用于内置sshfence fencer的SSH私钥文件。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;io.file.buffer.size&lt;/name&gt;
+        &lt;value&gt;131072&lt;/value&gt;
+        &lt;description&gt;SequenceFiles中使用的读/写缓冲区的大小。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;ipc.client.connect.max.retries&lt;/name&gt;
+        &lt;value&gt;100&lt;/value&gt;
+        &lt;description&gt;客户端为建立服务器连接而重试的次数。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;ipc.client.connect.retry.interval&lt;/name&gt;
+        &lt;value&gt;5000&lt;/value&gt;
+        &lt;description&gt;客户端在重试建立服务器连接之前将等待的毫秒数。&lt;/description&gt;
+    &lt;/property&gt;
+&lt;/configuration&gt;
 </code></pre><ul>
-<li><p>复制hadoop程序到其余机器</p>
-<pre><code># for N in $(seq 19 20); do scp -r /usr/local/app/hadoop gamesdoa$N:/usr/local/app/hadoop; done;
+<li><p>编辑$HADOOP_HOME/etc/hadoop/hdfs-site.xml</p>
+<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;?xml-stylesheet type=&quot;text/xsl&quot; href=&quot;configuration.xsl&quot;?&gt;
+&lt;configuration&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.nameservices&lt;/name&gt;
+        &lt;value&gt;gamesdoadata&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.ha.namenodes.gamesdoadata&lt;/name&gt;
+        &lt;value&gt;gamesdoa18,gamesdoa19,gamesdoa20&lt;/value&gt;
+        &lt;description&gt;给定名称服务的前缀包含给定名称服务的逗号分隔的名称节点列表。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.namenode.rpc-address.gamesdoadata.gamesdoa18&lt;/name&gt;
+        &lt;value&gt;gamesdoa18:8020&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.namenode.rpc-address.gamesdoadata.gamesdoa19&lt;/name&gt;
+        &lt;value&gt;gamesdoa19:8020&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.namenode.rpc-address.gamesdoadata.gamesdoa20&lt;/name&gt;
+        &lt;value&gt;gamesdoa20:8020&lt;/value&gt;
+    &lt;/property&gt;
+
+    &lt;property&gt;
+        &lt;name&gt;dfs.namenode.http-address.gamesdoadata.gamesdoa18&lt;/name&gt;
+        &lt;value&gt;gamesdoa18:50070&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.namenode.http-address.gamesdoadata.gamesdoa19&lt;/name&gt;
+        &lt;value&gt;gamesdoa19:50070&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.namenode.http-address.gamesdoadata.gamesdoa20&lt;/name&gt;
+        &lt;value&gt;gamesdoa20:50070&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.namenode.shared.edits.dir&lt;/name&gt;
+        &lt;value&gt;qjournal://gamesdoa18:8485;gamesdoa19:8485;gamesdoa20:8485/gamesdoadata&lt;/value&gt;
+        &lt;description&gt;HA群集中多个名称节点之间的共享存储上的目录。
+            此目录将由活动写入并由备用数据库读取，以保持命名空间同步。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.client.failover.proxy.provider.gamesdoadata&lt;/name&gt;
+        &lt;value&gt;org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider&lt;/value&gt;
+        &lt;description&gt;配置Java类的名称，DFS客户端将使用该名称来确定哪个NameNode是当前的Active，
+            以及哪个NameNode当前正在为客户端请求提供服务。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.ha.automatic-failover.enabled&lt;/name&gt;
+        &lt;value&gt;true&lt;/value&gt;
+        &lt;description&gt;是否启用自动故障转移。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.replication&lt;/name&gt;
+        &lt;value&gt;3&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.permissions.enabled&lt;/name&gt;
+        &lt;value&gt;false&lt;/value&gt;
+        &lt;description&gt;如果为“true”，则启用HDFS中的权限检查。如果为“false”，则关闭权限检查，但所有其他行为都保持不变。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.journalnode.edits.dir&lt;/name&gt;
+        &lt;value&gt;${hadoop.tmp.dir}/journalnode&lt;/value&gt;
+        &lt;description&gt;指定JournalNode在本地磁盘存放数据的位置&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.namenode.name.dir&lt;/name&gt;
+        &lt;value&gt;file://${hadoop.tmp.dir}/namenode&lt;/value&gt;
+        &lt;description&gt;设置namenode存放路径&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.datanode.data.dir&lt;/name&gt;
+        &lt;value&gt;file://${hadoop.tmp.dir}/datanode&lt;/value&gt;
+        &lt;description&gt;设置datanode存放径路&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.blocksize&lt;/name&gt;
+        &lt;value&gt;268435456&lt;/value&gt;
+        &lt;description&gt;大型文件系统的HDFS块大小为256MB。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;dfs.namenode.handler.count&lt;/name&gt;
+        &lt;value&gt;100&lt;/value&gt;
+        &lt;description&gt;namenode的服务器线程数&lt;/description&gt;
+    &lt;/property&gt;
+&lt;/configuration&gt;
 </code></pre></li>
-<li><p>启动Hadoop</p>
-<blockquote>
-<p>启动JournalNode集群</p>
-</blockquote>
+</ul>
+<ul>
+<li><p>编辑$HADOOP_HOME/etc/hadoop/mapred.site.xml</p>
+<pre><code>&lt;?xml version=&quot;1.0&quot;?&gt;
+&lt;?xml-stylesheet type=&quot;text/xsl&quot; href=&quot;configuration.xsl&quot;?&gt;
+&lt;configuration&gt;
+    &lt;property&gt;
+        &lt;name&gt;mapreduce.framework.name&lt;/name&gt;
+        &lt;value&gt;yarn&lt;/value&gt;
+        &lt;description&gt;指定mr框架为yarn方式&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;mapreduce.map.memory.mb&lt;/name&gt;
+        &lt;value&gt;512&lt;/value&gt;
+        &lt;description&gt;每个Map任务的物理内存限制&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;mapreduce.reduce.memory.mb&lt;/name&gt;
+        &lt;value&gt;512&lt;/value&gt;
+        &lt;description&gt;每个Reduce任务的物理内存限制&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;mapreduce.jobhistory.address&lt;/name&gt;
+        &lt;value&gt;0.0.0.0:10020&lt;/value&gt;
+        &lt;description&gt;MapReduce JobHistory服务器IPC主机：端口&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;mapreduce.jobhistory.webapp.address&lt;/name&gt;
+        &lt;value&gt;0.0.0.0:19888&lt;/value&gt;
+        &lt;description&gt;MapReduce JobHistory服务器Web浏览时的主机：端口&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;mapreduce.application.classpath&lt;/name&gt;
+        &lt;value&gt;
+                /usr/local/app/hadoop/hadoop-3.1.4/etc/hadoop,
+                /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/common/*,
+                /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/common/lib/*,
+                /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/hdfs/*,
+                /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/hdfs/lib/*,
+                /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/mapreduce/*,
+                /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/mapreduce/lib/*,
+                /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/yarn/*,
+                /usr/local/app/hadoop/hadoop-3.1.4/share/hadoop/yarn/lib/*
+        &lt;/value&gt;
+    &lt;/property&gt;
+&lt;/configuration&gt;
+</code></pre></li>
+</ul>
+<ul>
+<li>编辑$HADOOP_HOME/etc/hadoop/capacity-scheduler.xml</li>
+</ul>
+<ul>
+<li><p>编辑$HADOOP_HOME/etc/hadoop/yarn-site.xml</p>
+<pre><code>&lt;?xml version=&quot;1.0&quot;?&gt;
+&lt;configuration&gt;
+&lt;!-- Site specific YARN configuration properties --&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.resourcemanager.recovery.enabled&lt;/name&gt;
+        &lt;value&gt;true&lt;/value&gt;
+        &lt;description&gt;启动后启用RM以恢复状态。如果为true，则必须指定yarn.resourcemanager.store.class。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.resourcemanager.store.class&lt;/name&gt;
+        &lt;value&gt;org.apache.hadoop.yarn.server.resourcemanager.recovery.ZKRMStateStore&lt;/value&gt;
+        &lt;description&gt;用作持久存储的类。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.resourcemanager.zk-address&lt;/name&gt;
+        &lt;value&gt;gamesdoa18:2181,gamesdoa19:2181,gamesdoa20&lt;/value&gt;
+        &lt;description&gt;ZooKeeper服务的地址，多个地址使用逗号隔开&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.resourcemanager.ha.enabled&lt;/name&gt;
+        &lt;value&gt;true&lt;/value&gt;
+        &lt;description&gt;启用RM高可用性。启用时，（1）默认情况下，RM以待机模式启动，并在提示时转换为活动模式。（2）RM集合中的节点列在yarn.resourcemanager.ha.rm-ids中（3）如果明确指定了yarn.resourcemanager.ha.id，则每个RM的id来自yarn.resourcemanager.ha.id或者可以通过匹配yarn.resourcemanager.address。&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.resourcemanager.ha.rm-ids&lt;/name&gt;
+        &lt;value&gt;rm18,rm19,rm20&lt;/value&gt;
+        &lt;description&gt;启用HA时群集中的RM节点列表。最少2个,具体配置见下&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.resourcemanager.webapp.address.rm18&lt;/name&gt;
+        &lt;value&gt;gamesdoa18:8088&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.resourcemanager.webapp.address.rm19&lt;/name&gt;
+        &lt;value&gt;gamesdoa19:8088&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.resourcemanager.webapp.address.rm20&lt;/name&gt;
+        &lt;value&gt;gamesdoa20:8088&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.resourcemanager.cluster-id&lt;/name&gt;
+        &lt;value&gt;bd-yarn-ha&lt;/value&gt;
+        &lt;description&gt;集群HA的id，用于在ZooKeeper上创建节点，区分使用同一个ZooKeeper集群的不同Hadoop集群&lt;/description&gt;
+        &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.resourcemanager.hostname.rm18&lt;/name&gt;
+        &lt;value&gt;gamesdoa18&lt;/value&gt;
+        &lt;description&gt;主机名&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.resourcemanager.hostname.rm19&lt;/name&gt;
+        &lt;value&gt;gamesdoa19&lt;/value&gt;
+        &lt;description&gt;主机名&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.resourcemanager.hostname.rm20&lt;/name&gt;
+        &lt;value&gt;gamesdoa20&lt;/value&gt;
+        &lt;description&gt;主机名&lt;/description&gt;
+    &lt;/property&gt;
+
+    &lt;property&gt;
+        &lt;name&gt;yarn.nodemanager.aux-services&lt;/name&gt;
+        &lt;value&gt;mapreduce_shuffle&lt;/value&gt;
+        &lt;description&gt;reducer取数据的方式是mapreduce_shuffle&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;  
+        &lt;name&gt;yarn.nodemanager.resource.memory-mb&lt;/name&gt;  
+        &lt;value&gt;2048&lt;/value&gt;  
+        &lt;discription&gt;每个节点可用内存,单位MB&lt;/discription&gt;  
+    &lt;/property&gt; 
+    &lt;property&gt;  
+        &lt;name&gt;yarn.nodemanager.resource.cpu-vcores&lt;/name&gt;  
+        &lt;value&gt;2&lt;/value&gt;  
+        &lt;discription&gt;每个节点可用cpu&lt;/discription&gt;
+    &lt;/property&gt;   
+    &lt;property&gt;  
+        &lt;name&gt;yarn.scheduler.minimum-allocation-mb&lt;/name&gt;  
+        &lt;value&gt;512&lt;/value&gt;  
+        &lt;discription&gt;单个任务可申请最少内存，默认1024MB&lt;/discription&gt;  
+    &lt;/property&gt;  
+    &lt;property&gt;  
+        &lt;name&gt;yarn.scheduler.maximum-allocation-mb&lt;/name&gt;  
+        &lt;value&gt;1024&lt;/value&gt;  
+        &lt;discription&gt;单个任务可申请最大内存，默认8192MB&lt;/discription&gt;  
+    &lt;/property&gt; 
+    &lt;property&gt;  
+        &lt;name&gt;yarn.scheduler.minimum-allocation-vcores&lt;/name&gt;  
+        &lt;value&gt;1&lt;/value&gt;  
+        &lt;discription&gt;最小的cores 1 个，默认的就是一个&lt;/discription&gt;  
+    &lt;/property&gt; 
+    &lt;property&gt;  
+        &lt;name&gt;yarn.scheduler.minimum-allocation-vcores&lt;/name&gt;  
+        &lt;value&gt;2&lt;/value&gt;  
+        &lt;discription&gt;最多可分配的cores 2 个&lt;/discription&gt;  
+    &lt;/property&gt; 
+    &lt;property&gt;
+        &lt;name&gt;yarn.nodemanager.pmem-check-enabled&lt;/name&gt;
+        &lt;value&gt;false&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.nodemanager.vmem-check-enabled&lt;/name&gt;
+        &lt;value&gt;false&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.log-aggregation-enable&lt;/name&gt;
+        &lt;value&gt;true&lt;/value&gt;
+        &lt;discription&gt;是否开启聚合日志&lt;/discription&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.nodemanager.log-aggregation.roll-monitoring-interval-seconds&lt;/name&gt;
+        &lt;value&gt;-1&lt;/value&gt;
+        &lt;discription&gt;定义NM唤醒上载日志文件的频率。默认值为-1。默认情况下，应用程序完成后将上载日志。通过设置此配置，可以在应用程序运行时定期上载日志。可设置的最小滚动间隔秒数为3600。&lt;/discription&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.log.server.url&lt;/name&gt;
+        &lt;value&gt;http://c0:19888/jobhistory/logs&lt;/value&gt;
+        &lt;discription&gt; 配置日志服务器的地址&lt;/discription&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.log-aggregation.retain-seconds&lt;/name&gt;
+        &lt;value&gt;-1&lt;/value&gt;
+        &lt;discription&gt; 在删除聚合日志之前保留多长时间。-1禁用。单位是秒&lt;/discription&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.nodemanager.log-dirs&lt;/name&gt;
+        &lt;value&gt;/usr/local/app/hadoop/data/hadoop-3.1.4/yarn/container-logs/&lt;/value&gt;
+        &lt;discription&gt;nodemanager存放container日志的本地路径&lt;/discription&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;yarn.nodemanager.remote-app-log-dir&lt;/name&gt;
+        &lt;value&gt;/tmp/logs&lt;/value&gt;
+        &lt;discription&gt;nodemanager存放container日志的本地路径&lt;/discription&gt;
+    &lt;/property&gt;
+&lt;/configuration&gt;
+</code></pre></li>
+</ul>
+<ul>
+<li><p>编辑$HADOOP_HOME/etc/hadoop/hadoop-env.sh</p>
+<pre><code>export JAVA_HOME=/usr/local/java/jdk1.8.0_261
+HDFS_DATANODE_USER=hadoop
+# HDFS_DATANODE_SECURE_USER=
+HDFS_ZKFC_USER=hadoop
+HDFS_JOURNALNODE_USER=hadoop
+HDFS_NAMENODE_USER=hadoop
+HDFS_SECONDARYNAMENODE_USER=hadoop
+
+YARN_RESOURCEMANAGER_USER=hadoop
+YARN_NODEMANAGER_USER=hadoop
+</code></pre></li>
+<li><p>编辑$HADOOP_HOME/etc/hadoop/workers</p>
+<pre><code>gamesdoa18
+gamesdoa19
+gamesdoa20
+</code></pre></li>
+</ul>
+<h2 id="复制hadoop程序到其余机器"><a href="#复制hadoop程序到其余机器" class="headerlink" title="复制hadoop程序到其余机器"></a>复制hadoop程序到其余机器</h2><pre><code># for N in $(seq 19 20); do scp -r /usr/local/app/hadoop gamesdoa$N:/usr/local/app/hadoop; done;
+</code></pre><h2 id="启动Hadoop"><a href="#启动Hadoop" class="headerlink" title="启动Hadoop"></a>启动Hadoop</h2><ul>
+<li><p>启动JournalNode集群</p>
 <pre><code># for N in $(seq 18 20); do ssh gamesdoa$N /usr/local/app/hadoop/hadoop-3.1.4/bin/hdfs --daemon start journalnode; done;
 # check if success
 # for N in $(seq 18 20); do ssh -n gamesdoa$N /usr/local/java/jdk1.8.0_261/bin/jps; done;
-</code></pre><blockquote>
-<p> 格式化NameNode(该命令只能执行一次，如果需要再次执行需要把原有的文件删除)</p>
-<ul>
-<li>在gamesdoa18上</li>
-</ul>
-</blockquote>
-<pre><code># hdfs namenode -format
-</code></pre><blockquote>
-<p>启动zookeeper故障转移控制器，格式化zookeeper</p>
-</blockquote>
+</code></pre></li>
+<li><p>格式化NameNode(该命令只能执行一次，如果需要再次执行需要把原有的文件删除)</p>
+<pre><code>//在gamesdoa18上
+# hdfs namenode -format
+</code></pre></li>
+<li><p>启动zookeeper故障转移控制器，格式化zookeeper</p>
 <pre><code># hdfs zkfc -formatZK
 # zkCli.sh
 //验证 zkfc 是否成功, 执行 ls / 命令如果显示hadoop-ha则表示成功
 zk: localhost:2181(CONNECTED) 0] ls /
 [zookeeper, hadoop-ha]
-</code></pre><blockquote>
-<p>启动NameNode</p>
-</blockquote>
+</code></pre></li>
+<li><p>启动NameNode</p>
 <pre><code>//在gamesdoa18上
 # hdfs --daemon start namenode
 
@@ -1059,15 +1030,14 @@ zk: localhost:2181(CONNECTED) 0] ls /
 # /usr/local/app/hadoop/hadoop-3.1.4/sbin/start-dfs.sh
 // check status
 # hdfs haadmin -getAllServiceState
-
 gamesdoa18:8020                                    active    
 gamesdoa19:8020                                    standby   
 gamesdoa20:8020                                    standby     
+
 // gamesdoa18上启动 YARN
 # /usr/local/app/hadoop/hadoop-3.1.4/sbin/start-yarn.sh
-</code></pre><blockquote>
-<p> 验证高可用性</p>
-</blockquote>
+</code></pre></li>
+<li><p>验证高可用性</p>
 <pre><code>// gamesdoa18 查看状态
 [gamesdoa18]# hdfs haadmin -getAllServiceState
 gamesdoa18:8020        active    
@@ -1084,111 +1054,95 @@ gamesdoa19:8020        Failed to connect: Call From gamesdoa18/192.168.112.18 to
 gamesdoa20:8020        standby     
 </code></pre></li>
 </ul>
-<h2 id="安装Spark"><a href="#安装Spark" class="headerlink" title="安装Spark"></a>安装Spark</h2><ul>
+<h1 id="安装Spark"><a href="#安装Spark" class="headerlink" title="安装Spark"></a>安装Spark</h1><ul>
 <li><p>在<a href="https://spark.apache.org/" target="_blank" rel="external">官网</a>下载所需发布版本的Spark，这里我下载的版本为<a href="https://spark.apache.org/downloads.html" target="_blank" rel="external">Apache Spark 2.4.7</a> ,选择 Spark 版本和对应的 Hadoop 版本后再下载,下载后进行解压：</p>
 <pre><code># tar -zxvf spark-2.4.7-bin-hadoop2.7.tgz
 </code></pre></li>
-<li><p>配置环境变量(每台服务器都需要配置)</p>
-<pre><code># vim /etc/profile
+</ul>
+<h2 id="配置环境变量-每台服务器都需要配置-2"><a href="#配置环境变量-每台服务器都需要配置-2" class="headerlink" title="配置环境变量(每台服务器都需要配置)"></a>配置环境变量(每台服务器都需要配置)</h2><pre><code># vim /etc/profile
 
 export SPARK_HOME=/usr/local/app/spark/spark-2.4.7-bin-hadoop2.7
 export PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
 
 # source /etc/profile
-</code></pre></li>
-<li><p>进入 ${SPARK_HOME}/conf 目录，拷贝配置样本进行修改：</p>
-<ul>
-<li>运行环境配置</li>
-</ul>
-</li>
-</ul>
-<pre><code>        # cp spark-env.sh.template spark-env.sh
+</code></pre><h2 id="运行环境配置"><a href="#运行环境配置" class="headerlink" title="运行环境配置"></a>运行环境配置</h2><blockquote>
+<p>进入 ${SPARK_HOME}/conf 目录，拷贝配置样本进行修改：</p>
+</blockquote>
+<pre><code>   # cp spark-env.sh.template spark-env.sh
 
-     &gt; spark-env.sh中添加内容 vim  spark-env.sh
+&gt; spark-env.sh中添加内容 vim  spark-env.sh
 
-        # 配置JDK安装位置
-        export JAVA_HOME=/usr/local/java/jdk1.8.0_261
-        # 配置hadoop配置文件的位置
-        export HADOOP_CONF_DIR=/usr/local/app/hadoop/hadoop-3.1.4
-        # 配置zookeeper地址
-        export SPARK_DAEMON_JAVA_OPTS=&quot;-Dspark.deploy.recoveryMode=ZOOKEEPER -Dspark.deploy.zookeeper.url=gamesdoa18:2181,gamesdoa19:2181,gamesdoa20:2181 -Dspark.deploy.zookeeper.dir=/spark-2.4.7&quot;
-        export SPARK_LOG_DIR=/usr/local/app/spark/logs/spark-2.4.7-bin-hadoop2.7
-        # Spark Work内存使用量
-        export SPARK_WORKER_MEMORY=512M
+   # 配置JDK安装位置
+   export JAVA_HOME=/usr/local/java/jdk1.8.0_261
+   # 配置hadoop配置文件的位置
+   export HADOOP_CONF_DIR=/usr/local/app/hadoop/hadoop-3.1.4
+   # 配置zookeeper地址
+   export SPARK_DAEMON_JAVA_OPTS=&quot;-Dspark.deploy.recoveryMode=ZOOKEEPER -Dspark.deploy.zookeeper.url=gamesdoa18:2181,gamesdoa19:2181,gamesdoa20:2181 -Dspark.deploy.zookeeper.dir=/spark-2.4.7&quot;
+   export SPARK_LOG_DIR=/usr/local/app/spark/logs/spark-2.4.7-bin-hadoop2.7
+   # Spark Work内存使用量
+   export SPARK_WORKER_MEMORY=512M
 
-        # 该参数决定了yarn集群中，最多能够同时启动的EXECUTOR的实例个数。
-        export SPARK_EXECUTOR_INSTANCES=3
+   # 该参数决定了yarn集群中，最多能够同时启动的EXECUTOR的实例个数。
+   export SPARK_EXECUTOR_INSTANCES=3
 
-        # 设置每个EXECUTOR能够使用的CPU core的数量。
-        export SPARK_EXECUTOR_CORES=3
+   # 设置每个EXECUTOR能够使用的CPU core的数量。
+   export SPARK_EXECUTOR_CORES=3
 
-        # 该参数设置的是每个EXECUTOR分配的内存的数量
-        export SPARK_EXECUTOR_MEMORY=512M
+   # 该参数设置的是每个EXECUTOR分配的内存的数量
+   export SPARK_EXECUTOR_MEMORY=512M
 
-        #该参数设置的是DRIVER分配的内存的大小
-        export SPARK_DRIVER_MEMORY=1G
+   #该参数设置的是DRIVER分配的内存的大小
+   export SPARK_DRIVER_MEMORY=1G
 
-        # Spark Application在Yarn中的名字
-        export SPARK_YARN_APP_NAME=&quot;gamesdoa.Spark-2.4.7&quot;
+   # Spark Application在Yarn中的名字
+   export SPARK_YARN_APP_NAME=&quot;gamesdoa.Spark-2.4.7&quot;
+</code></pre><h2 id="系统配置"><a href="#系统配置" class="headerlink" title="系统配置"></a>系统配置</h2><pre><code># cp spark-defaults.conf.template  spark-defaults.conf
+</code></pre><blockquote>
+<p>spark-defaults.conf中添加内容 vim  spark-defaults.conf</p>
+</blockquote>
+<pre><code># 如果没有适合当前本地性要求的任务可供运行，将跑得慢的任务在空闲计算资源上再度调度的行为,这个参数会引发一些tmp文件被删除的问题，一般设置为false
+spark.speculation        false
 
-- 系统配置
+# 如果设置为true,前台用jdbc方式连接，显示的会是乱码
+spark.sql.hive.convertMetastoreParquet  false
 
+# 应用程序上载到HDFS的复制份数
+spark.yarn.submit.file.replication 3
 
-        # cp spark-defaults.conf.template  spark-defaults.conf
+# Spark application master给YARN ResourceManager 发送心跳的时间间隔（ms）
+spark.yarn.scheduler.heartbeat.interal-ms  5000
 
-    &gt; spark-defaults.conf中添加内容 vim  spark-defaults.conf
+# 仅适用于HashShuffleMananger的实现，同样是为了解决生成过多文件的问题，采用的方式是在不同批次运行的Map任务之间重用Shuffle输出文件，也就是说合并的是不同批次的Map任务的输出数据，但是每个Map任务所需要的文件还是取决于Reduce分区的数量，因此，它并不减少同时打开的输出文件的数量，因此对内存使用量的减少并没有帮助。只是HashShuffleManager里的一个折中的解决方案。
+spark.shuffle.consolidateFiles  true
 
+# 一个partition对应着一个task,如果数据量过大，可以调整次参数来减少每个task所需消耗的内存.
+spark.sql.shuffle.partitions 100
 
-        # 如果没有适合当前本地性要求的任务可供运行，将跑得慢的任务在空闲计算资源上再度调度的行为,这个参数会引发一些tmp文件被删除的问题，一般设置为false
-        spark.speculation        false
+# Spark SQL在每次执行次，先把SQL查询编译JAVA字节码。针对执行时间长的SQL查询或频繁执行的SQL查询，此配置能加快查询速度，因为它产生特殊的字节码去执行。但是针对很短的查询，可能会增加开销，因为它必须先编译每一个查询
+spark.sql.codegen true
 
-        # 如果设置为true,前台用jdbc方式连接，显示的会是乱码
-        spark.sql.hive.convertMetastoreParquet  false
+# 我们都知道shuffle默认情况下的文件数据为map tasks * reduce tasks,通过设置其为true,可以使spark合并shuffle的中间文件为reduce的tasks数目。
+spark.shuffle.consolidateFiles true
 
-        # 应用程序上载到HDFS的复制份数
-        spark.yarn.submit.file.replication 3
+# 是否记录Spark事件，对于在应用程序完成后重建Web UI非常有用。
+spark.eventLog.enabled true
 
-        # Spark application master给YARN ResourceManager 发送心跳的时间间隔（ms）
-        spark.yarn.scheduler.heartbeat.interal-ms  5000
+# 是否压缩已记录的事件，如果spark.eventLog.enabled为true。压缩将使用spark.io.compression.codec。
+spark.eventLog.compress true
 
-        # 仅适用于HashShuffleMananger的实现，同样是为了解决生成过多文件的问题，采用的方式是在不同批次运行的Map任务之间重用Shuffle输出文件，也就是说合并的是不同批次的Map任务的输出数据，但是每个Map任务所需要的文件还是取决于Reduce分区的数量，因此，它并不减少同时打开的输出文件的数量，因此对内存使用量的减少并没有帮助。只是HashShuffleManager里的一个折中的解决方案。
-        spark.shuffle.consolidateFiles  true
-
-        # 一个partition对应着一个task,如果数据量过大，可以调整次参数来减少每个task所需消耗的内存.
-        spark.sql.shuffle.partitions 100
-
-        # Spark SQL在每次执行次，先把SQL查询编译JAVA字节码。针对执行时间长的SQL查询或频繁执行的SQL查询，此配置能加快查询速度，因为它产生特殊的字节码去执行。但是针对很短的查询，可能会增加开销，因为它必须先编译每一个查询
-        spark.sql.codegen true
-
-        # 我们都知道shuffle默认情况下的文件数据为map tasks * reduce tasks,通过设置其为true,可以使spark合并shuffle的中间文件为reduce的tasks数目。
-        spark.shuffle.consolidateFiles true
-
-        # 是否记录Spark事件，对于在应用程序完成后重建Web UI非常有用。
-        spark.eventLog.enabled true
-
-        # 是否压缩已记录的事件，如果spark.eventLog.enabled为true。压缩将使用spark.io.compression.codec。
-        spark.eventLog.compress true
-
-        # 如果spark.eventLog.enabled为true，则记录Spark事件的基目录。在此基本目录中，Spark为每个应用程序创建一个子目录，并将特定于该应用程序的事件记录在此目录中。用户可能希望将其设置为统一位置（如HDFS目录），以便历史记录服务器可以读取历史记录文件。
-        spark.eventLog.dir hdfs://gamesdoadata/tmp/logs/spark_logs
-        # 配置hdfs相关文件，需要把$HADOOP_HOME/etc/hadoop/路径下的两个文件拷贝到$SPARK_HOME/conf路径下，然后再配置文件：cp $HADOOP_HOME/etc/hadoop/hdfs-site.xml ./
-        spark.files   file:///usr/local/app/spark/spark-2.4.7-bin-hadoop2.7/conf/hdfs-site.xml,file:///usr/local/app/spark/spark-2.4.7-bin-hadoop2.7/conf/core-site.xml
-
-- 从服务配置
-
-        # cp slaves.template slaves
-
-    &gt;slaves中添加内容 vim  slaves
-
-        gamesdoa18
-        gamesdoa19
-        gamesdoa20
-</code></pre><ul>
-<li><p>复制spark到其它节点。</p>
-<pre><code># for N in $(seq 19 20); do scp -r /usr/local/app/spark gamesdoa$N:/usr/local/app/spark; done;
-</code></pre></li>
-<li><p>启动集群</p>
-<pre><code># 在所有服务器上启动master and workers
+# 如果spark.eventLog.enabled为true，则记录Spark事件的基目录。在此基本目录中，Spark为每个应用程序创建一个子目录，并将特定于该应用程序的事件记录在此目录中。用户可能希望将其设置为统一位置（如HDFS目录），以便历史记录服务器可以读取历史记录文件。
+spark.eventLog.dir hdfs://gamesdoadata/tmp/logs/spark_logs
+# 配置hdfs相关文件，需要把$HADOOP_HOME/etc/hadoop/路径下的两个文件拷贝到$SPARK_HOME/conf路径下，然后再配置文件：cp $HADOOP_HOME/etc/hadoop/hdfs-site.xml ./
+spark.files   file:///usr/local/app/spark/spark-2.4.7-bin-hadoop2.7/conf/hdfs-site.xml,file:///usr/local/app/spark/spark-2.4.7-bin-hadoop2.7/conf/core-site.xml
+</code></pre><h2 id="从服务配置"><a href="#从服务配置" class="headerlink" title="从服务配置"></a>从服务配置</h2><pre><code># cp slaves.template slaves
+</code></pre><blockquote>
+<p>slaves中添加内容 vim  slaves</p>
+</blockquote>
+<pre><code>gamesdoa18
+gamesdoa19
+gamesdoa20
+</code></pre><h2 id="复制spark到其它节点"><a href="#复制spark到其它节点" class="headerlink" title="复制spark到其它节点"></a>复制spark到其它节点</h2><pre><code># for N in $(seq 19 20); do scp -r /usr/local/app/spark gamesdoa$N:/usr/local/app/spark; done;
+</code></pre><h2 id="启动集群"><a href="#启动集群" class="headerlink" title="启动集群"></a>启动集群</h2><pre><code># 在所有服务器上启动master and workers
 [gamesdoa18] # /usr/local/app/spark/spark-2.4.7-bin-hadoop2.7/sbin/start-all.sh
 [gamesdoa19] # /usr/local/app/spark/spark-2.4.7-bin-hadoop2.7/sbin/start-master.sh
 [gamesdoa20] # /usr/local/app/spark/spark-2.4.7-bin-hadoop2.7/sbin/start-master.sh
@@ -1201,114 +1155,122 @@ export PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
 [gamesdoa18] # /usr/local/app/spark/spark-2.4.7-bin-hadoop2.7/bin/spark-shell
 # test cluster
 [gamesdoa18] # /usr/local/app/spark/spark-2.4.7-bin-hadoop2.7/bin/spark-shell --master yarn --deploy-mode client
-</code></pre></li>
-</ul>
-<p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/spark_start.png" alt="启动"></p>
-<h2 id="安装HBase"><a href="#安装HBase" class="headerlink" title="安装HBase"></a>安装HBase</h2><ul>
-<li><p>在<a href="https://hbase.apache.org/" target="_blank" rel="external">官网</a>下载所需发布版本的Spark，这里我下载的版本为<a href="https://hbase.apache.org/downloads.html" target="_blank" rel="external">Apache HBase 2.2.5</a> ,下载后进行解压：</p>
+</code></pre><p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/spark_start.png" alt="启动"></p>
+<h1 id="安装HBase"><a href="#安装HBase" class="headerlink" title="安装HBase"></a>安装HBase</h1><h2 id="下载安装包-2"><a href="#下载安装包-2" class="headerlink" title="下载安装包"></a>下载安装包</h2><blockquote>
+<p>在<a href="https://hbase.apache.org/" target="_blank" rel="external">官网</a>下载所需发布版本的Spark，这里我下载的版本为<a href="https://hbase.apache.org/downloads.html" target="_blank" rel="external">Apache HBase 2.2.5</a> ,下载后进行解压：</p>
+</blockquote>
 <pre><code># tar -zxvf hbase-2.2.5-bin.tar.gz
-</code></pre></li>
-<li><p>配置环境变量(每台服务器都需要配置)</p>
-<pre><code># vim /etc/profile
+</code></pre><h2 id="配置环境变量-每台服务器都需要配置-3"><a href="#配置环境变量-每台服务器都需要配置-3" class="headerlink" title="配置环境变量(每台服务器都需要配置)"></a>配置环境变量(每台服务器都需要配置)</h2><pre><code># vim /etc/profile
 
 export HBASE_HOME=/usr/local/app/hbase/hbase-2.2.5
 export PATH=$HBASE_HOME/bin:$PATH
 
 # source /etc/profile
-</code></pre></li>
-<li><p>进入 ${HBASE_HOME}/conf 目录，拷贝配置样本进行修改：</p>
-<ul>
-<li><p>修改hbase-site.xml</p>
-<blockquote>
-<p>hbase-site.xml中修改内容 vim hbase-site.xml</p>
+</code></pre><h2 id="修改hbase-site-xml"><a href="#修改hbase-site-xml" class="headerlink" title="修改hbase-site.xml"></a>修改hbase-site.xml</h2><blockquote>
+<p>进入 ${HBASE_HOME}/conf 目录，拷贝配置样本进行修改：</p>
 </blockquote>
-  <configuration><br>      <property><br>          <name>hbase.rootdir</name> <!-- hbase存放数据目录 --><br>          <value>hdfs://gamesdoadata:8020/hbase/hbase_db</value><br>          <description>端口要和Hadoop的fs.defaultFS端口一致</description><br>  　　</property><br>  　　<property><br>  　　　　<name>hbase.cluster.distributed</name><br>  　　　　<value>true</value><br>          <description>集群将处于的模式。可能的值是对于独立模式为false，对于分布式模式为true</description><br>  　　</property><br>  　　<property><br>  　　　　<name>hbase.zookeeper.quorum</name><br>  　　　　<value>gamesdoa18,gamesdoa19,gamesdoa20</value><br>          <description>逗号分隔的ZooKeeper集合中的服务器列表个</description><br>  　　</property> 　　　<br>      <property><br>          <name>hbase.zookeeper.property.dataDir</name><br>          <value>/usr/local/app/hbase/data/hbase-2.2.5</value><br>          <description>zookooper配置、日志等的存储位置，必须为以存在</description><br>      </property><br>      <property><br>          <name>hbase.master.port</name><br>          <value>16000</value><br>          <description>HBase Master应绑定的端口</description><br>      </property><br>      <property><br>          <name>hbase.master.info.port</name><br>          <value>16010</value><br>          <description>hbase web 端口</description><br>  　　</property><br>  　　<property><br>          <name>hbase.unsafe.stream.capability.enforce</name><br>          <value>false</value><br>      </property><br>      <property><br>          <name>hbase.wal.provider</name><br>          <value>filesystem</value><br>      </property><br>  </configuration>
+<p> hbase-site.xml中修改内容 vim hbase-site.xml</p>
+<pre><code>&lt;configuration&gt;
+    &lt;property&gt;
+        &lt;name&gt;hbase.rootdir&lt;/name&gt; &lt;!-- hbase存放数据目录 --&gt;
+        &lt;value&gt;hdfs://gamesdoadata:8020/hbase/hbase_db&lt;/value&gt;
+        &lt;description&gt;端口要和Hadoop的fs.defaultFS端口一致&lt;/description&gt;
+　　&lt;/property&gt;
+　　&lt;property&gt;
+　　　　&lt;name&gt;hbase.cluster.distributed&lt;/name&gt;
+　　　　&lt;value&gt;true&lt;/value&gt;
+        &lt;description&gt;集群将处于的模式。可能的值是对于独立模式为false，对于分布式模式为true&lt;/description&gt;
+　　&lt;/property&gt;
+　　&lt;property&gt;
+　　　　&lt;name&gt;hbase.zookeeper.quorum&lt;/name&gt;
+　　　　&lt;value&gt;gamesdoa18,gamesdoa19,gamesdoa20&lt;/value&gt;
+        &lt;description&gt;逗号分隔的ZooKeeper集合中的服务器列表个&lt;/description&gt;
+　　&lt;/property&gt; 　　　
+    &lt;property&gt;
+        &lt;name&gt;hbase.zookeeper.property.dataDir&lt;/name&gt;
+        &lt;value&gt;/usr/local/app/hbase/data/hbase-2.2.5&lt;/value&gt;
+        &lt;description&gt;zookooper配置、日志等的存储位置，必须为以存在&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;hbase.master.port&lt;/name&gt;
+        &lt;value&gt;16000&lt;/value&gt;
+        &lt;description&gt;HBase Master应绑定的端口&lt;/description&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;hbase.master.info.port&lt;/name&gt;
+        &lt;value&gt;16010&lt;/value&gt;
+        &lt;description&gt;hbase web 端口&lt;/description&gt;
+　　&lt;/property&gt;
+　　&lt;property&gt;
+        &lt;name&gt;hbase.unsafe.stream.capability.enforce&lt;/name&gt;
+        &lt;value&gt;false&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;hbase.wal.provider&lt;/name&gt;
+        &lt;value&gt;filesystem&lt;/value&gt;
+    &lt;/property&gt;
+&lt;/configuration&gt;
+</code></pre><h2 id="修改hbase-env-sh"><a href="#修改hbase-env-sh" class="headerlink" title="修改hbase-env.sh"></a>修改hbase-env.sh</h2><p>hbase-env.sh中修改内容 vim hbase-env.sh</p>
+<pre><code>#!/usr/bin/env bash        
+# The java implementation to use.  Java 1.8+ required.
+export JAVA_HOME=/usr/local/java/jdk1.8.0_261
+# Extra Java CLASSPATH elements.  HDFS客户端配置，如果在 Hadoop 集群上进行了 HDFS 客户端配置的更改，比如将副本系数 dfs.replication 设置成 5，则必须使 HBase 知道，否则 HBase 将依旧使用默认的副本系数 3 来创建文件，将 Hadoop 配置文件的位置信息添加到 hbase-env.sh 的 HBASE_CLASSPATH 属性，示例如下：
+export HBASE_CLASSPATH=/usr/local/app/hadoop/hadoop-3.1.4/etc/hadoop
 
+export HBASE_OPTS=&quot;$HBASE_OPTS -XX:+UseConcMarkSweepGC&quot;
 
-</li>
-</ul>
-</li>
-</ul>
-<pre><code>- 修改hbase-env.sh
-&gt;hbase-env.sh中修改内容 vim hbase-env.sh
+# Where log files are stored.  $HBASE_HOME/logs by default.
+export HBASE_LOG_DIR=/usr/local/app/hbase/logs/hbase-2.2.5
 
-    #!/usr/bin/env bash        
-    # The java implementation to use.  Java 1.8+ required.
-    export JAVA_HOME=/usr/local/java/jdk1.8.0_261
-    # Extra Java CLASSPATH elements.  HDFS客户端配置，如果在 Hadoop 集群上进行了 HDFS 客户端配置的更改，比如将副本系数 dfs.replication 设置成 5，则必须使 HBase 知道，否则 HBase 将依旧使用默认的副本系数 3 来创建文件，将 Hadoop 配置文件的位置信息添加到 hbase-env.sh 的 HBASE_CLASSPATH 属性，示例如下：
-    export HBASE_CLASSPATH=/usr/local/app/hadoop/hadoop-3.1.4/etc/hadoop
-
-    export HBASE_OPTS=&quot;$HBASE_OPTS -XX:+UseConcMarkSweepGC&quot;
-
-    # Where log files are stored.  $HBASE_HOME/logs by default.
-    export HBASE_LOG_DIR=/usr/local/app/hbase/logs/hbase-2.2.5
-
-    # Tell HBase whether it should manage it&apos;s own instance of ZooKeeper or not.
-    export HBASE_MANAGES_ZK=false
-
-- 编辑slaves
-
-        # vim regionservers
-        gamesdoa18
-        gamesdoa19
-        gamesdoa20
-
-- 新建backup-masters文件
-
-        # vim backup-masters
-        gamesdoa19
-        gamesdoa20
-
-    &gt; backup-masters 这个文件是不存在的，需要新建，主要用来指明备用的 master 节点，可以指定1个或者多个。
-</code></pre><ul>
-<li><p>分发安装包</p>
-<pre><code># for N in $(seq 19 20); do scp -r /usr/local/app/hbase gamesdoa$N:/usr/local/app/hbase; done;
-</code></pre></li>
-<li><p>启动HBase集群</p>
-<p>  进入 gamesdoa18 的 ${HBASE_HOME}/bin，使用以下命令启动 HBase 集群。执行此命令后，会在 gamesdoa18 上启动 Master 服务，在 gamesdoa19,gamedoa20 上启动备用 Master 服务，在 regionservers 文件中配置的所有节点启动 region server 服务。</p>
+# Tell HBase whether it should manage it&apos;s own instance of ZooKeeper or not.
+export HBASE_MANAGES_ZK=false
+</code></pre><h2 id="编辑slaves"><a href="#编辑slaves" class="headerlink" title="编辑slaves"></a>编辑slaves</h2><pre><code># vim regionservers
+gamesdoa18
+gamesdoa19
+gamesdoa20
+</code></pre><h2 id="新建backup-masters文件"><a href="#新建backup-masters文件" class="headerlink" title="新建backup-masters文件"></a>新建backup-masters文件</h2><pre><code># vim backup-masters
+gamesdoa19
+gamesdoa20
+</code></pre><blockquote>
+<p>backup-masters 这个文件是不存在的，需要新建，主要用来指明备用的 master 节点，可以指定1个或者多个。</p>
+</blockquote>
+<h2 id="分发安装包"><a href="#分发安装包" class="headerlink" title="分发安装包"></a>分发安装包</h2><pre><code># for N in $(seq 19 20); do scp -r /usr/local/app/hbase gamesdoa$N:/usr/local/app/hbase; done;
+</code></pre><h2 id="启动HBase集群"><a href="#启动HBase集群" class="headerlink" title="启动HBase集群"></a>启动HBase集群</h2><blockquote>
+<p>进入 gamesdoa18 的 ${HBASE_HOME}/bin，使用以下命令启动 HBase 集群。执行此命令后，会在 gamesdoa18 上启动 Master 服务，在 gamesdoa19,gamedoa20 上启动备用 Master 服务，在 regionservers 文件中配置的所有节点启动 region server 服务。</p>
+</blockquote>
 <pre><code># cd ${HBASE_HOME}/bin
 # start-hbase.sh
 # hbase shell
     &gt;list
     &gt;version
     &gt;quit
-</code></pre></li>
-</ul>
-<p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/HBASE_start.png" alt="启动"><br><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/hbase_webui.png" alt="可视化查看"></p>
-<h2 id="安装Phoenix-5-0-0-HBase-2-0"><a href="#安装Phoenix-5-0-0-HBase-2-0" class="headerlink" title="安装Phoenix_5.0.0_HBase_2.0"></a>安装Phoenix_5.0.0_HBase_2.0</h2><ul>
-<li><p>在<a href="https://phoenix.apache.org/" target="_blank" rel="external">官网</a>下载所需发布版本的phoenix，这里我下载的版本为<a href="https://phoenix.apache.org/download.html" target="_blank" rel="external">Apache Phoenix 5.0.0-HBase-2.0</a>,下载后进行解压：</p>
+</code></pre><p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/HBASE_start.png" alt="启动"><br><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/hbase_webui.png" alt="可视化查看"></p>
+<h1 id="安装Phoenix-5-0-0-HBase-2-0"><a href="#安装Phoenix-5-0-0-HBase-2-0" class="headerlink" title="安装Phoenix_5.0.0_HBase_2.0"></a>安装Phoenix_5.0.0_HBase_2.0</h1><h2 id="下载安装包-3"><a href="#下载安装包-3" class="headerlink" title="下载安装包"></a>下载安装包</h2><blockquote>
+<p>在<a href="https://phoenix.apache.org/" target="_blank" rel="external">官网</a>下载所需发布版本的phoenix，这里我下载的版本为<a href="https://phoenix.apache.org/download.html" target="_blank" rel="external">Apache Phoenix 5.0.0-HBase-2.0</a>,下载后进行解压：</p>
+</blockquote>
 <pre><code># tar -zxvf apache-phoenix-5.0.0-HBase-2.0-bin.tar.gz
-</code></pre></li>
-<li><p>配置环境变量(每台服务器都需要配置)</p>
-<pre><code># vim /etc/profile
+</code></pre><h2 id="配置环境变量-每台服务器都需要配置-4"><a href="#配置环境变量-每台服务器都需要配置-4" class="headerlink" title="配置环境变量(每台服务器都需要配置)"></a>配置环境变量(每台服务器都需要配置)</h2><pre><code># vim /etc/profile
 
 export HBASE_HOME=/usr/local/app/hbase/hbase-2.2.5
 export PATH=$HBASE_HOME/bin:$PATH
 
 # source /etc/profile
-</code></pre></li>
-<li><p>设置jars</p>
-<p>  拷贝Phoenix目录下的phoenix-core-5.0.0-HBase-2.0.jar, phoenix-5.0.0-HBase-2.0-server.jar到Hbase Server的lib目录下，将phoenix-5.0.0-HBase-2.0-client.jar拷贝到客户端。</p>
-</li>
-<li><p>在bin目录下创建hadoop core-site.xml、hdfs-site.xml以及hbase-site.xml的符号连接</p>
+</code></pre><h2 id="设置jars"><a href="#设置jars" class="headerlink" title="设置jars"></a>设置jars</h2><p> 拷贝Phoenix目录下的phoenix-core-5.0.0-HBase-2.0.jar, phoenix-5.0.0-HBase-2.0-server.jar到Hbase Server的lib目录下，将phoenix-5.0.0-HBase-2.0-client.jar拷贝到客户端。</p>
+<h2 id="创建符号链接"><a href="#创建符号链接" class="headerlink" title="创建符号链接"></a>创建符号链接</h2><blockquote>
+<p>在bin目录下创建hadoop core-site.xml、hdfs-site.xml以及hbase-site.xml的符号连接</p>
+</blockquote>
 <pre><code># cd $PHOENIX_HOME/bin
 # ln -s /usr/local/app/hadoop/hadoop-3.1.4/etc/hadoop/core-site.xml ./core-site.xml
 # ln -s /usr/local/app/hadoop/hadoop-3.1.4/etc/hadoop/hdfs-site.xml ./hdfs-site.xml
 # ln -s /usr/local/app/hbase/hbase-2.2.5/conf/hbase-site.xml ./hbase-site.xml
-</code></pre></li>
-<li><p>分发安装包</p>
-<pre><code># for N in $(seq 19 20); do scp -r /usr/local/app/apache-phoenix-5.0.0-HBase-2.0-bin gamesdoa$N:/usr/local/app/apache-phoenix-5.0.0-HBase-2.0-bin; done;
-</code></pre></li>
-<li><p>重新启动HBase集群，并测试phoenix</p>
-<pre><code># cd ${HBASE_HOME}/bin
+</code></pre><h2 id="分发安装包-1"><a href="#分发安装包-1" class="headerlink" title="分发安装包"></a>分发安装包</h2><pre><code># for N in $(seq 19 20); do scp -r /usr/local/app/apache-phoenix-5.0.0-HBase-2.0-bin gamesdoa$N:/usr/local/app/apache-phoenix-5.0.0-HBase-2.0-bin; done;
+</code></pre><h2 id="重新启动HBase集群，并测试phoenix"><a href="#重新启动HBase集群，并测试phoenix" class="headerlink" title="重新启动HBase集群，并测试phoenix"></a>重新启动HBase集群，并测试phoenix</h2><pre><code># cd ${HBASE_HOME}/bin
 # stop-hbase.sh
 # start-hbase.sh
 # cd $PHOENIX_HOME/bin
 # sqlline.py gamesdoa18,gamesdoa19,gamesdoa20:2181
 # psql.py gamesdoa18,gamesdoa19,gamesdoa20:2181 create_table.sql table_data.csv table_query.sql
-</code></pre></li>
-</ul>
-
+</code></pre>
       
     </div>
 
@@ -1525,7 +1487,7 @@ export PATH=$HBASE_HOME/bin:$PATH
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#集群环境：采用VMWare模拟3台主机。"><span class="nav-number">1.</span> <span class="nav-text">集群环境：采用VMWare模拟3台主机。</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#用VMWare-Workstation准备虚拟环境，安装CentOS-7-8"><span class="nav-number">1.1.</span> <span class="nav-text">用VMWare Workstation准备虚拟环境，安装CentOS 7.8</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Clone两个新的镜像"><span class="nav-number">1.2.</span> <span class="nav-text">Clone两个新的镜像</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分别更改新镜像的IP-hostname"><span class="nav-number">1.3.</span> <span class="nav-text">分别更改新镜像的IP, hostname</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#设置SSH免登录"><span class="nav-number">1.4.</span> <span class="nav-text">设置SSH免登录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#为每台服务器创建身份标识"><span class="nav-number">1.5.</span> <span class="nav-text">为每台服务器创建身份标识</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#在所有节点上启动zookeeper"><span class="nav-number">1.6.</span> <span class="nav-text">在所有节点上启动zookeeper</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#安装hadoop"><span class="nav-number">2.</span> <span class="nav-text">安装hadoop</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#安装Spark"><span class="nav-number">2.1.</span> <span class="nav-text">安装Spark</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安装HBase"><span class="nav-number">2.2.</span> <span class="nav-text">安装HBase</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安装Phoenix-5-0-0-HBase-2-0"><span class="nav-number">2.3.</span> <span class="nav-text">安装Phoenix_5.0.0_HBase_2.0</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#集群环境：采用VMWare模拟3台主机。"><span class="nav-number">1.</span> <span class="nav-text">集群环境：采用VMWare模拟3台主机。</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#用VMWare-Workstation准备虚拟环境，安装CentOS-7-8"><span class="nav-number">1.1.</span> <span class="nav-text">用VMWare Workstation准备虚拟环境，安装CentOS 7.8</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Clone两个新的镜像"><span class="nav-number">1.2.</span> <span class="nav-text">Clone两个新的镜像</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分别更改新镜像的IP-hostname"><span class="nav-number">1.3.</span> <span class="nav-text">分别更改新镜像的IP, hostname</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#设置SSH免登录"><span class="nav-number">1.4.</span> <span class="nav-text">设置SSH免登录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#创建相关目录"><span class="nav-number">1.5.</span> <span class="nav-text">创建相关目录</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#安装zookeeper"><span class="nav-number">2.</span> <span class="nav-text">安装zookeeper</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#下载安装包"><span class="nav-number">2.1.</span> <span class="nav-text">下载安装包</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置环境变量-每台服务器都需要配置"><span class="nav-number">2.2.</span> <span class="nav-text">配置环境变量(每台服务器都需要配置)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#创建配置文件zoo-cfg"><span class="nav-number">2.3.</span> <span class="nav-text">创建配置文件zoo.cfg</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#复制zookeeper到其它机器上"><span class="nav-number">2.4.</span> <span class="nav-text">复制zookeeper到其它机器上</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#为每台服务器创建身份标识"><span class="nav-number">2.5.</span> <span class="nav-text">为每台服务器创建身份标识</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#在所有节点上启动zookeeper"><span class="nav-number">2.6.</span> <span class="nav-text">在所有节点上启动zookeeper</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#安装hadoop"><span class="nav-number">3.</span> <span class="nav-text">安装hadoop</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#下载安装包-1"><span class="nav-number">3.1.</span> <span class="nav-text">下载安装包</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置环境变量-每台服务器都需要配置-1"><span class="nav-number">3.2.</span> <span class="nav-text">配置环境变量(每台服务器都需要配置)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#修改配置"><span class="nav-number">3.3.</span> <span class="nav-text">修改配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#复制hadoop程序到其余机器"><span class="nav-number">3.4.</span> <span class="nav-text">复制hadoop程序到其余机器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#启动Hadoop"><span class="nav-number">3.5.</span> <span class="nav-text">启动Hadoop</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#安装Spark"><span class="nav-number">4.</span> <span class="nav-text">安装Spark</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#配置环境变量-每台服务器都需要配置-2"><span class="nav-number">4.1.</span> <span class="nav-text">配置环境变量(每台服务器都需要配置)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#运行环境配置"><span class="nav-number">4.2.</span> <span class="nav-text">运行环境配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#系统配置"><span class="nav-number">4.3.</span> <span class="nav-text">系统配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#从服务配置"><span class="nav-number">4.4.</span> <span class="nav-text">从服务配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#复制spark到其它节点"><span class="nav-number">4.5.</span> <span class="nav-text">复制spark到其它节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#启动集群"><span class="nav-number">4.6.</span> <span class="nav-text">启动集群</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#安装HBase"><span class="nav-number">5.</span> <span class="nav-text">安装HBase</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#下载安装包-2"><span class="nav-number">5.1.</span> <span class="nav-text">下载安装包</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置环境变量-每台服务器都需要配置-3"><span class="nav-number">5.2.</span> <span class="nav-text">配置环境变量(每台服务器都需要配置)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#修改hbase-site-xml"><span class="nav-number">5.3.</span> <span class="nav-text">修改hbase-site.xml</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#修改hbase-env-sh"><span class="nav-number">5.4.</span> <span class="nav-text">修改hbase-env.sh</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#编辑slaves"><span class="nav-number">5.5.</span> <span class="nav-text">编辑slaves</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#新建backup-masters文件"><span class="nav-number">5.6.</span> <span class="nav-text">新建backup-masters文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分发安装包"><span class="nav-number">5.7.</span> <span class="nav-text">分发安装包</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#启动HBase集群"><span class="nav-number">5.8.</span> <span class="nav-text">启动HBase集群</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#安装Phoenix-5-0-0-HBase-2-0"><span class="nav-number">6.</span> <span class="nav-text">安装Phoenix_5.0.0_HBase_2.0</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#下载安装包-3"><span class="nav-number">6.1.</span> <span class="nav-text">下载安装包</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置环境变量-每台服务器都需要配置-4"><span class="nav-number">6.2.</span> <span class="nav-text">配置环境变量(每台服务器都需要配置)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#设置jars"><span class="nav-number">6.3.</span> <span class="nav-text">设置jars</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#创建符号链接"><span class="nav-number">6.4.</span> <span class="nav-text">创建符号链接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分发安装包-1"><span class="nav-number">6.5.</span> <span class="nav-text">分发安装包</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#重新启动HBase集群，并测试phoenix"><span class="nav-number">6.6.</span> <span class="nav-text">重新启动HBase集群，并测试phoenix</span></a></li></ol></li></ol></div>
             
 
           </div>
