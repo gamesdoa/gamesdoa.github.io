@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://gamesdoa.com/"/>
-  <updated>2020-09-22T05:52:28.040Z</updated>
+  <updated>2020-09-22T06:00:10.298Z</updated>
   <id>http://gamesdoa.com/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="http://gamesdoa.com/hadoop-zookeeper-spark-hbase-phoenix.html"/>
     <id>http://gamesdoa.com/hadoop-zookeeper-spark-hbase-phoenix.html</id>
     <published>2020-09-17T16:00:00.000Z</published>
-    <updated>2020-09-22T05:52:28.040Z</updated>
+    <updated>2020-09-22T06:00:10.298Z</updated>
     
     <content type="html"><![CDATA[<h1 id="集群环境：采用VMWare模拟3台主机。"><a href="#集群环境：采用VMWare模拟3台主机。" class="headerlink" title="集群环境：采用VMWare模拟3台主机。"></a>集群环境：采用VMWare模拟3台主机。</h1><p>–</p>
 <table>
@@ -61,77 +61,74 @@
 </tr>
 </tbody>
 </table>
-<h2 id="用VMWare-Workstation准备虚拟环境，安装CentOS-7-8"><a href="#用VMWare-Workstation准备虚拟环境，安装CentOS-7-8" class="headerlink" title="用VMWare Workstation准备虚拟环境，安装CentOS 7.8"></a>用VMWare Workstation准备虚拟环境，安装CentOS 7.8</h2><p>–</p>
-<ul>
-<li><p><strong>配置主机名及IP</strong></p>
-<p>  配置主机名</p>
+<h2 id="用VMWare-Workstation准备虚拟环境，安装CentOS-7-8"><a href="#用VMWare-Workstation准备虚拟环境，安装CentOS-7-8" class="headerlink" title="用VMWare Workstation准备虚拟环境，安装CentOS 7.8"></a>用VMWare Workstation准备虚拟环境，安装CentOS 7.8</h2><h3 id="配置主机名及IP"><a href="#配置主机名及IP" class="headerlink" title="配置主机名及IP"></a><strong>配置主机名及IP</strong></h3><ul>
+<li><p>配置主机名</p>
 <pre><code>$ hostnamectl set-hostname gamesdoa18
 $ hostname
 gamesdoa18
 </code></pre></li>
 </ul>
-<pre><code>编辑/etc/hosts
+<ul>
+<li><p>编辑/etc/hosts</p>
+<pre><code>$ vim /etc/hosts
 
-    $ vim /etc/hosts
-
-    127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
-    ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
-    192.168.112.18 gamesdoa18
-    192.168.112.19 gamesdoa19
-    192.168.112.20 gamesdoa20
-
-设置IP路由等，编辑/etc/sysconfig/network-scripts/ifcfg-ens33
-
-    $ vim /etc/sysconfig/network-scripts/ifcfg-ens33
-
-    TYPE=Ethernet
-    PROXY_METHOD=none
-    BROWSER_ONLY=no
-    BOOTPROTO=static
-    DEFROUTE=yes
-    IPV4_FAILURE_FATAL=no
-    IPV6INIT=yes
-    IPV6_AUTOCONF=yes
-    IPV6_DEFROUTE=yes
-    IPV6_FAILURE_FATAL=no
-    IPV6_ADDR_GEN_MODE=stable-privacy
-    NAME=ens33
-    UUID=5ff3f099-11f8-4880-b5d4-6a70183d0572
-    DEVICE=ens33
-    ONBOOT=yes
-    IPADDR=192.168.112.18
-    NETMASK=255.255.255.0
-    GATEWAY=192.168.112.254
-    DNS1=61.139.2.69
-    IPV6_PRIVACY=no
-
-&gt; 注意修改：BOOTPROTO、ONBOOT、IPADDR、NETMASK、GATEWAY、DNS1 信息
-
-重启网络
-
-    $ systemctl restart network
-</code></pre><ul>
-<li><p><strong>安装 JDK 1.8</strong></p>
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+192.168.112.18 gamesdoa18
+192.168.112.19 gamesdoa19
+192.168.112.20 gamesdoa20
+</code></pre></li>
+<li><p>设置IP路由</p>
 <blockquote>
-<p>下载并解压<br>在<a href="https://www.oracle.com/java/technologies/javase-downloads.html" target="_blank" rel="external">官网</a>下载所需版本的 JDK，这里我下载的版本为<a href="https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html" target="_blank" rel="external">JDK 1.8</a> ,下载后进行解压：</p>
+<p>编辑/etc/sysconfig/network-scripts/ifcfg-ens33</p>
 </blockquote>
-<pre><code># tar -zxvf jdk-8u261-linux-x64.tar.gz
+<pre><code>$ vim /etc/sysconfig/network-scripts/ifcfg-ens33
+
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=static
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=ens33
+UUID=5ff3f099-11f8-4880-b5d4-6a70183d0572
+DEVICE=ens33
+ONBOOT=yes
+IPADDR=192.168.112.18
+NETMASK=255.255.255.0
+GATEWAY=192.168.112.254
+DNS1=61.139.2.69
+IPV6_PRIVACY=no
 </code></pre><blockquote>
-<p>设置环境变量</p>
+<p>注意修改：BOOTPROTO、ONBOOT、IPADDR、NETMASK、GATEWAY、DNS1 信息</p>
 </blockquote>
+</li>
+<li><p>重启网络</p>
+<pre><code>$ systemctl restart network
+</code></pre></li>
+</ul>
+<h3 id="安装-JDK-1-8"><a href="#安装-JDK-1-8" class="headerlink" title="安装 JDK 1.8"></a><strong>安装 JDK 1.8</strong></h3><ul>
+<li><p>下载并解压</p>
+<p>  在<a href="https://www.oracle.com/java/technologies/javase-downloads.html" target="_blank" rel="external">官网</a>下载所需版本的 JDK，这里我下载的版本为<a href="https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html" target="_blank" rel="external">JDK 1.8</a> ,下载后进行解压：</p>
+<pre><code># tar -zxvf jdk-8u261-linux-x64.tar.gz
+</code></pre></li>
+<li><p>设置环境变量</p>
 <pre><code># vim /etc/profile
 
 export JAVA_HOME=/usr/java/jdk1.8.0_201  
 export JRE_HOME=${JAVA_HOME}/jre  
 export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib  
 export PATH=${JAVA_HOME}/bin:$PATH
-</code></pre><blockquote>
-<p>执行 source 命令，使得配置立即生效：</p>
-</blockquote>
+</code></pre></li>
+<li><p>执行 source 命令，使得配置立即生效：</p>
 <pre><code># source /etc/profile
-</code></pre><blockquote>
-<p>检查是否安装成功</p>
-</blockquote>
+</code></pre></li>
+<li><p>检查是否安装成功</p>
 <pre><code># java -version
 
 java version &quot;1.8.0_261&quot;
@@ -139,9 +136,7 @@ Java(TM) SE Runtime Environment (build 1.8.0_261-b12)
 Java HotSpot(TM) 64-Bit Server VM (build 25.261-b12, mixed mode)
 </code></pre></li>
 </ul>
-<ul>
-<li><p><strong>关闭防火墙</strong></p>
-<blockquote>
+<h3 id="关闭防火墙"><a href="#关闭防火墙" class="headerlink" title="关闭防火墙"></a><strong>关闭防火墙</strong></h3><blockquote>
 <p>在开始安装集群前，最好先关闭防火墙，否则后续会出现很多异常问题。</p>
 </blockquote>
 <pre><code># systemctl stop firewalld &amp; systemctl disable firewalld
@@ -149,22 +144,14 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.261-b12, mixed mode)
 [1] 7013
 Removed symlink /etc/systemd/system/multi-user.target.wants/firewalld.service.
 Removed symlink /etc/systemd/system/dbus-org.fedoraproject.FirewallD1.service.
-</code></pre></li>
-<li><p><strong>关闭Swap</strong></p>
-<blockquote>
-<p>执行swapoff -a临时关闭，但系统重启后恢复</p>
-<p>编辑/etc/fstab，注释掉包含swap的行后，重启</p>
-</blockquote>
-</li>
-<li><p><strong>禁用SELinux（仅限实验测试等环节使用）</strong></p>
-<blockquote>
-<p>编辑/etc/selinux/config，更改SELINUX=disabled，重启。检查状态</p>
-</blockquote>
-<pre><code>$ sestatus
-SELinux status:                 disabled
-</code></pre></li>
-</ul>
-<h2 id="Clone两个新的镜像"><a href="#Clone两个新的镜像" class="headerlink" title="Clone两个新的镜像"></a>Clone两个新的镜像</h2><p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/clone.jpg" alt="克隆步骤"></p>
+</code></pre><h3 id="关闭Swap"><a href="#关闭Swap" class="headerlink" title="关闭Swap"></a><strong>关闭Swap</strong></h3><pre><code>&gt;执行swapoff -a临时关闭，但系统重启后恢复
+
+&gt;编辑/etc/fstab，注释掉包含swap的行后，重启
+</code></pre><h3 id="禁用SELinux（仅限实验测试等环节使用）"><a href="#禁用SELinux（仅限实验测试等环节使用）" class="headerlink" title="禁用SELinux（仅限实验测试等环节使用）"></a><strong>禁用SELinux（仅限实验测试等环节使用）</strong></h3><pre><code>&gt;编辑/etc/selinux/config，更改SELINUX=disabled，重启。检查状态
+
+    $ sestatus
+    SELinux status:                 disabled
+</code></pre><h2 id="Clone两个新的镜像"><a href="#Clone两个新的镜像" class="headerlink" title="Clone两个新的镜像"></a>Clone两个新的镜像</h2><p><img src="https://github.com/gamesdoa/img0/blob/master/bigdata/environ/clone.jpg" alt="克隆步骤"></p>
 <blockquote>
 <p>虚拟机(VM)–&gt; 管理(Manage) –&gt; 克隆(Clone)</p>
 </blockquote>
