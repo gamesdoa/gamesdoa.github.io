@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://gamesdoa.com/remote-shutdown.html</loc>
+    
+    <lastmod>2020-11-09T09:33:07.223Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://gamesdoa.com/hadoop-zookeeper-spark-hbase-phoenix.html</loc>
     
     <lastmod>2020-09-22T06:07:44.736Z</lastmod>

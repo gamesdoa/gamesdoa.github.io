@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://gamesdoa.com/"/>
-  <updated>2020-09-22T06:07:44.736Z</updated>
+  <updated>2020-11-09T09:33:07.223Z</updated>
   <id>http://gamesdoa.com/</id>
   
   <author>
@@ -14,6 +14,37 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>windows如何在远程桌面无响应的情况下完成远程电脑重启</title>
+    <link href="http://gamesdoa.com/remote-shutdown.html"/>
+    <id>http://gamesdoa.com/remote-shutdown.html</id>
+    <published>2020-11-08T16:00:00.000Z</published>
+    <updated>2020-11-09T09:33:07.223Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="进入命令行-cmd-，获取远程关机、重启权限"><a href="#进入命令行-cmd-，获取远程关机、重启权限" class="headerlink" title="进入命令行(cmd)，获取远程关机、重启权限"></a>进入命令行(cmd)，获取远程关机、重启权限</h2><pre><code>&gt; net use \\192.168.XXX.XXX
+</code></pre><blockquote>
+<p>应该需要在同一物理局域网</p>
+</blockquote>
+<p>之后输入远程主机用户名和密码</p>
+<h2 id="执行远程关机命令"><a href="#执行远程关机命令" class="headerlink" title="执行远程关机命令"></a>执行远程关机命令</h2><pre><code>&gt; shutdown -r -m \\192.168.XXX.XXX
+</code></pre><p>完成整个重启过程</p>
+]]></content>
+    
+    <summary type="html">
+    
+      windows远程桌面无响应，如何完成远程电脑重启。
+    
+    </summary>
+    
+      <category term="windows" scheme="http://gamesdoa.com/categories/windows/"/>
+    
+    
+      <category term="关机" scheme="http://gamesdoa.com/tags/%E5%85%B3%E6%9C%BA/"/>
+    
+      <category term="windows" scheme="http://gamesdoa.com/tags/windows/"/>
+    
+  </entry>
   
   <entry>
     <title>Hadoop 3.1.4 + Zookeeper 3.4.14 + Spark 2.4.7 + HBase 2.2.5 + Phoenix 5.0.0 高可用集群部署</title>
