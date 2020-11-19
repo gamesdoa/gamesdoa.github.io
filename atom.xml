@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://gamesdoa.com/"/>
-  <updated>2020-11-09T09:33:07.223Z</updated>
+  <updated>2020-11-19T08:41:10.687Z</updated>
   <id>http://gamesdoa.com/</id>
   
   <author>
@@ -14,6 +14,117 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>SpringBoot 使用 jasypt 3.0 配置文件敏感信息加密</title>
+    <link href="http://gamesdoa.com/springboot-jasypt.html"/>
+    <id>http://gamesdoa.com/springboot-jasypt.html</id>
+    <published>2020-11-18T16:00:00.000Z</published>
+    <updated>2020-11-19T08:41:10.687Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="说明"><a href="#说明" class="headerlink" title="说明"></a>说明</h2><p>SpringBoot配置文件中资源文件中的内容通常情况下是明文显示，安全性比较低些在 application.properties或application.yml中，MySql登陆密码，Redis登陆密码以及第三方的密钥等等，如何对这些敏感信息进行加密，提高属性配置的安全性呢？</p>
+<p>这里可以使用jasypt来处理，该工具是由国外的一位大神编写的springboot下的工具包，用来加密配置文件中的信息。</p>
+<h2 id="数据用户名和数据库密码加密为例"><a href="#数据用户名和数据库密码加密为例" class="headerlink" title="数据用户名和数据库密码加密为例"></a>数据用户名和数据库密码加密为例</h2><ul>
+<li><p>引入包</p>
+<p>  查看最新版本可以到:<a href="https://github.com/ulisesbocchio/jasypt-spring-boot" target="_blank" rel="external">https://github.com/ulisesbocchio/jasypt-spring-boot</a></p>
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;com.github.ulisesbocchio&lt;/groupId&gt;
+    &lt;artifactId&gt;jasypt-spring-boot-starter&lt;/artifactId&gt;
+    &lt;version&gt;3.0.3&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre></li>
+<li><p>配置加/解的密码</p>
+<pre><code># jasypt加密的密匙及加密模式
+jasypt:
+  encryptor:
+    iv-generator-classname: org.jasypt.iv.NoIvGenerator
+    algorithm: PBEWithMD5AndDES
+    password: test_key
+</code></pre></li>
+</ul>
+<ul>
+<li><p>测试用例中生成加密后的秘钥</p>
+<pre><code>public static void main(String[] args) {
+    StandardPBEStringEncryptor standardPBEStringEncryptor = new StandardPBEStringEncryptor();
+    standardPBEStringEncryptor.setAlgorithm(&quot;PBEWithMD5AndDES&quot;);
+    standardPBEStringEncryptor.setPassword(&quot;test_key&quot;);
+    //加密
+    String username = standardPBEStringEncryptor.encrypt(&quot;root&quot;);
+    String password = standardPBEStringEncryptor.encrypt(&quot;root&quot;);
+    System.out.println(&quot;username:&quot;+username);
+    System.out.println(&quot;password:&quot;+password);
+    //解密
+    String username2 = standardPBEStringEncryptor.decrypt(username);
+    String password2 = standardPBEStringEncryptor.decrypt(password);
+    System.out.println(&quot;username2:&quot;+username2);
+    System.out.println(&quot;password2:&quot;+password2);
+}
+</code></pre><blockquote>
+<p>下面是输出加密字符串：</p>
+</blockquote>
+<pre><code>username:71gfTbIPb3/x04MWNzZ9Ww==
+password:51A975NQFngJ9iAqvBwGYg==
+username2:root
+password2:root
+</code></pre></li>
+<li><p>将加密后的字符串替换原明文</p>
+<blockquote>
+<p>application.yml</p>
+</blockquote>
+<pre><code>spring:
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/XXX
+    username: ENC(71gfTbIPb3/x04MWNzZ9Ww==)
+    password: ENC(51A975NQFngJ9iAqvBwGYg==)
+    driver-class-name: com.mysql.jdbc.Driver
+</code></pre><blockquote>
+<p>注意: 上面的 ENC() 是固定写法.</p>
+</blockquote>
+</li>
+<li><p>部署时配置salt(盐)值</p>
+<p>  为了防止salt(盐)泄露,反解出密码.可以在项目部署的时候使用命令传入salt(盐)值:</p>
+<pre><code>java -jar xxx.jar -Djasypt.encryptor.password=test_key
+</code></pre><blockquote>
+<p>这样就可以把配置文件里面的jasypt.encryptor.password删除了</p>
+</blockquote>
+</li>
+</ul>
+<pre><code>或者在服务器的环境变量里配置。
+
+打开/etc/profile文件
+
+    vim /etc/profile
+
+在profile文件末尾插入salt(盐)变量
+
+    export JASYPT_PASSWORD = test_key
+
+编译，使配置文件生效
+
+    source /etc/profile
+
+运行
+
+    java -jar -Djasypt.encryptor.password=${JASYPT_PASSWORD} xxx.jar
+</code></pre><h2 id="备注"><a href="#备注" class="headerlink" title="备注"></a>备注</h2><p>本文为使用自动配置类型的示例，@SpringBootApplication 或 @EnableAutoConfiguration</p>
+<p>使用 Spring Boot 版本是 Version 2.1.X </p>
+<p>使用 Jasypt 为 3.0.3 如果使用 Jasypt 版本为3.0以下，改方案不适用</p>
+]]></content>
+    
+    <summary type="html">
+    
+      SpringBoot 使用 jasypt 3.0 配置文件敏感信息加密。
+    
+    </summary>
+    
+      <category term="SpringBoot" scheme="http://gamesdoa.com/categories/SpringBoot/"/>
+    
+    
+      <category term="SpringBoot" scheme="http://gamesdoa.com/tags/SpringBoot/"/>
+    
+      <category term="jasypt 3.0.3" scheme="http://gamesdoa.com/tags/jasypt-3-0-3/"/>
+    
+  </entry>
   
   <entry>
     <title>windows如何在远程桌面无响应的情况下完成远程电脑重启</title>
