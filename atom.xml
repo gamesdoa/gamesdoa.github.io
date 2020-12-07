@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://gamesdoa.com/"/>
-  <updated>2020-11-19T08:41:10.687Z</updated>
+  <updated>2020-12-07T06:36:59.826Z</updated>
   <id>http://gamesdoa.com/</id>
   
   <author>
@@ -14,6 +14,300 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>深入浅出消息队列</title>
+    <link href="http://gamesdoa.com/mq.html"/>
+    <id>http://gamesdoa.com/mq.html</id>
+    <published>2020-12-07T01:28:06.871Z</published>
+    <updated>2020-12-07T06:36:59.826Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="为什么需要消息队列"><a href="#为什么需要消息队列" class="headerlink" title="为什么需要消息队列"></a>为什么需要消息队列</h2><ul>
+<li><p>异步处理 ： 包括发送IM消息、异步日志、异步短信/邮件（尤其是批量数据）或注册/开启任务等等</p>
+</li>
+<li><p>流量控制 ： 秒杀、限流</p>
+</li>
+<li><p>服务解耦 ： 主要用于重构和新设计时，对频繁变动的接口服务进行解耦</p>
+</li>
+<li><p>数据同步 ： 包括业务服务之间的业务数据同步（主要是状态）、DB间的数据同步等等</p>
+</li>
+<li><p>信息收集 ： 主要用于数据统计、监控、搜索引擎等等</p>
+</li>
+<li><p>分布式事务消息 ： 对数据一致性有要求的异步处理场景</p>
+</li>
+</ul>
+<p><strong>消息队列也有它自身的一些问题和局限性</strong></p>
+<blockquote>
+<ul>
+<li>引入消息队列带来的延迟问题</li>
+<li>增加了系统的复杂度</li>
+<li>可能产生数据不一致的问题</li>
+</ul>
+</blockquote>
+<h2 id="该如何选择消息队列"><a href="#该如何选择消息队列" class="headerlink" title="该如何选择消息队列"></a>该如何选择消息队列</h2><p><strong>选择消息队列产品的基本标准</strong></p>
+<ul>
+<li>必须是开源的产品</li>
+<li>必须是近年来比较流行并且有一定社区活跃度的产品</li>
+<li>必须具备的几个特性包括<blockquote>
+<ul>
+<li>消息的可靠传递：确保不丢消息；</li>
+<li>Cluster：支持集群，确保不会因为某个节点宕机导致服务不可用，当然也不能丢消息；</li>
+<li>性能：具备足够好的性能，能满足绝大多数场景的性能要求。</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+<p><strong>待选型产品</strong></p>
+<ul>
+<li>RabbitMQ</li>
+</ul>
+<blockquote>
+<p>优势</p>
+<ul>
+<li>轻量级、迅捷，是开箱即用的消息队列</li>
+<li>特色的功能是支持非常灵活的路由配置，它在生产者（Producer）和队列（Queue）之间增加了一个 Exchange 模块来实现</li>
+<li>客户端支持的编程语言大概是所有消息队列中最多的，如果系统是用某种冷门语言开发的，多半可以找到对应的 RabbitMQ 客户端。</li>
+</ul>
+<p>问题</p>
+<ul>
+<li><strong>RabbitMQ 对消息堆积的支持并不好</strong>，在它的设计理念里面，消息队列是一个管道，大量的消息积压是一种不正常的情况，应当尽量去避免。当大量消息积压的时候，会导致 RabbitMQ 的性能急剧下降。</li>
+<li><strong>RabbitMQ 的性能是主流的几个消息队列中最差的</strong>，根据官方给出的测试数据综合我们日常使用的经验，依据硬件配置的不同，它大概每秒钟可以处理几万到十几万条消息。</li>
+<li><strong>使用的编程语言是 Erlang</strong>，这个编程语言不仅是非常小众的语言，更重要的是这个语言的学习曲线非常陡峭。</li>
+</ul>
+</blockquote>
+<ul>
+<li>RocketMQ</li>
+</ul>
+<blockquote>
+<p>优势</p>
+<ul>
+<li>有着不错的性能，稳定性和可靠性，具备一个现代的消息队列应该有的几乎全部功能和特性，并且它还在持续的成长中。</li>
+<li>RocketMQ 有非常活跃的中文社区。</li>
+<li>RocketMQ 使用 Java 语言开发，它的贡献者大多数都是中国人，源代码相对也比较容易读懂，很容易对 RocketMQ 进行扩展或者二次开发。</li>
+<li>RocketMQ 对在线业务的响应时延做了很多的优化，大多数情况下可以做到<strong>毫秒级的响应</strong>，如果你的应用场景很在意响应时延，那应该选择使用 RocketMQ。</li>
+<li>RocketMQ 的性能比 RabbitMQ 要高一个数量级，每秒钟大概能处理几十万条消息。</li>
+</ul>
+<p>劣势</p>
+<ul>
+<li>作为国产的消息队列，相比国外的比较流行的同类产品，在国际上还没有那么流行，与周边生态系统的集成和兼容程度要略逊一筹。</li>
+</ul>
+</blockquote>
+<ul>
+<li>Kafka</li>
+</ul>
+<blockquote>
+<p>优势</p>
+<ul>
+<li><strong>Kafka 与周边生态系统的兼容性是最好的没有之一</strong>，尤其在大数据和流计算领域，几乎所有的相关开源软件系统都会优先支持 Kafka。</li>
+<li>Kafka 使用 Scala 和 Java 语言开发</li>
+<li>设计上大量使用了批量和异步的思想，这种设计使得 Kafka 能做到超高的性能</li>
+</ul>
+<p>劣势</p>
+<ul>
+<li>Kafka 异步批量的设计带来的问题是，它的同步收发消息的响应时延比较高，某些情况下 Kafka 不太适合在线业务场景。</li>
+<li><blockquote>
+<p>因为当客户端发送一条消息的时候，Kafka 并不会立即发送出去，而是要等一会儿攒一批再发送，在它的 Broker 中，很多地方都会使用这种“先攒一波再一起处理”的设计</p>
+</blockquote>
+</li>
+<li><blockquote>
+<p>Kafka 可以通过设置批次大小，在消息没有积压的情况下，延迟基本上小于10ms</p>
+</blockquote>
+</li>
+<li><blockquote>
+<p>RocketMQ 配置得当的情况下，可以做到2-3ms。</p>
+</blockquote>
+</li>
+</ul>
+</blockquote>
+<ul>
+<li>ActiveMQ</li>
+</ul>
+<blockquote>
+<p>ActiveMQ 是最老牌的开源消息队列，是08、09年左右唯一可供选择的开源消息队列，目前已进入老年期，社区不活跃。无论是功能还是性能方面，ActiveMQ 都与现代的消息队列存在明显的差距，它存在的意义仅限于兼容那些还在用的古老系统。</p>
+</blockquote>
+<ul>
+<li>ZeroMQ</li>
+</ul>
+<blockquote>
+<p>严格来说 ZeroMQ 并不能称之为一个消息队列，而是一个基于消息队列的多线程网络库，如果你的需求是将消息队列的功能集成到你的系统进程中，可以考虑使用 ZeroMQ。</p>
+</blockquote>
+<ul>
+<li><strong>Pulsar</strong></li>
+</ul>
+<blockquote>
+<p>新兴的开源消息队列产品，最早是由 Yahoo 开发，目前处于成长期，流行度和成熟度相对没有那么高。与其他消息队列最大的不同是：<strong>Pulsar 采用存储和计算分离的设计</strong></p>
+</blockquote>
+<h2 id="消息模型：主题和队列有什么区别？"><a href="#消息模型：主题和队列有什么区别？" class="headerlink" title="消息模型：主题和队列有什么区别？"></a>消息模型：主题和队列有什么区别？</h2><p>消息模型：</p>
+<ul>
+<li>队列模型</li>
+<li><p>发布 - 订阅模型（Publish-Subscribe Pattern）</p>
+<blockquote>
+<p>仔细对比一下这两种模型，生产者就是发布者，消费者就是订阅者，队列就是主题，并没有本质的区别。<br>它们最大的区别其实就是，一份消息数据能不能被消费多次的问题。</p>
+</blockquote>
+</li>
+<li><p>RabbitMQ的消息模型</p>
+<blockquote>
+<p>坚持使用队列模型的产品之一<br>它是怎么解决多个消费者的问题呢？</p>
+<ul>
+<li>在 RabbitMQ 中，Exchange 位于生产者和队列之间，生产者并不关心将消息发送给哪个队列，而是将消息发送给 Exchange，由 Exchange 上配置的策略来决定将消息投递到哪些队列中。</li>
+<li>同一份消息如果需要被多个消费者来消费，需要配置 Exchange 将消息发送到多个队列，每个队列中都存放一份完整的消息数据，可以为一个消费者提供消费服务。</li>
+<li>也就是说RabbitMQ的多个消费者，每个消费者都对应一个完整的数据队列（空间就浪费了）</li>
+</ul>
+</blockquote>
+</li>
+<li><p>RocketMQ 、 Kafka</p>
+<blockquote>
+<p>采用发布 - 订阅模型的消息队列<br>消息队列产品都使用一种非常朴素的“请求 - 确认”机制，确保消息不会在传递过程中由于网络或服务器故障丢失。</p>
+<ul>
+<li>在生产端，生产者先将消息发送给服务端，也就是 Broker，服务端在收到消息并将消息写入主题或者队列中后，会给生产者发送确认的响应，如果生产者没有收到服务端的确认或者收到失败的响应，则会重新发送消息。</li>
+<li>在消费端，消费者在收到消息并完成自己的消费业务逻辑（比如，将数据保存到数据库中）后，也会给服务端发送消费成功的确认，服务端只有收到消费确认后，才认为一条消息被成功消费，否则它会给消费者重新发送这条消息，直到收到对应的消费成功确认。</li>
+<li>为了确保消息的有序性，在某一条消息被成功消费之前，下一条消息是不能被消费的，否则就会出现消息空洞，违背了有序性这个原则。</li>
+</ul>
+<p>为了解决没法通过水平扩展消费者的数量来提升消费端总体的消费性能。</p>
+<ul>
+<li>每个主题在任意时刻，至多只能有一个消费者实例在进行消费，为了解决这个问题，RocketMQ 在主题下面增加了队列的概念。</li>
+<li>每个主题包含多个队列，通过多个队列来实现多实例并行生产和消费。需要注意的是，RocketMQ 只在队列上保证消息的有序性，主题层面是无法保证消息的严格顺序的。</li>
+<li>RocketMQ 中，订阅者的概念是通过消费组（Consumer Group）来体现的。每个消费组都消费主题中一份完整的消息，不同消费组之间消费进度彼此不受影响，也就是说，一条消息被 Consumer Group1 消费过，也会再给 Consumer Group2 消费。</li>
+<li>消费组中包含多个消费者，同一个组内的消费者是竞争消费的关系，每个消费者负责消费组内的一部分消息。如果一条消息被消费者 Consumer1 消费了，那同组的其他消费者就不会再收到这条消息。</li>
+<li>在 Topic 的消费过程中，由于消息需要被不同的组进行多次消费，所以消费完的消息并不会立即被删除，这就需要 RocketMQ 为每个消费组在每个队列上维护一个消费位置（Consumer Offset），这个位置之前的消息都被消费过，之后的消息都没有被消费过，每成功消费一条消息，消费位置就加一。这个消费位置是非常重要的概念，我们在使用消息队列的时候，丢消息的原因大多是由于消费位置处理不当导致的。<br><img src="https://github.com/gamesdoa/img0/raw/master/mq/rocketmq.jpg" alt="RocketMQ架构图"></li>
+</ul>
+</blockquote>
+</li>
+</ul>
+<p>Kafka 的消息模型和 RocketMQ 是完全一样的，唯一的区别是，在 Kafka 中，队列这个概念的名称不一样，Kafka 中对应的名称是“分区（Partition）”，含义和功能是没有任何区别的。</p>
+<h2 id="如何利用事务消息实现分布式事务？"><a href="#如何利用事务消息实现分布式事务？" class="headerlink" title="如何利用事务消息实现分布式事务？"></a>如何利用事务消息实现分布式事务？</h2><p>消息队列中的“事务”，主要解决的是消息生产者和消息消费者的数据一致性问题。</p>
+<p>什么是分布式事务？</p>
+<blockquote>
+<p>严格意义的事务实现，应该具有 4 个属性：原子性、一致性、隔离性、持久性。这四个属性通常称为 ACID 特性。</p>
+<ul>
+<li>原子性，是指一个事务操作不可分割，要么成功，要么失败，不能有一半成功一半失败的情况。</li>
+<li>一致性，是指这些数据在事务执行完成这个时间点之前，读到的一定是更新前的数据，之后读到的一定是更新后的数据，不应该存在一个时刻，让用户读到更新过程中的数据。</li>
+<li>隔离性，是指一个事务的执行不能被其他事务干扰。即一个事务内部的操作及使用的数据对正在进行的其他事务是隔离的，并发执行的各个事务之间不能互相干扰。</li>
+<li>持久性，是指一个事务一旦完成提交，后续的其他操作和故障都不会对事务的结果产生任何影响。</li>
+</ul>
+<p>大部分传统的单体关系型数据库都完整的实现了 ACID，但是，对于分布式系统来说，严格的实现 ACID 这四个特性几乎是不可能的，或者说实现的代价太大，大到我们无法接受。在分布式系统中，在保证可用性和不严重牺牲性能的前提下，光是要实现数据的一致性就已经非常困难了，所以出现了很多“残血版”的一致性，比如<strong>顺序一致性、最终一致性</strong>等等。</p>
+</blockquote>
+<p>消息队列是如何实现分布式事务的？</p>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/mq/mq-tr.jpg" alt="消息队列事务"></p>
+<ul>
+<li>首先，订单系统在消息队列上开启一个事务。然后订单系统给消息服务器发送一个“半消息”，它包含完整的消息内容，半消息和普通消息的唯一区别是，在事务提交之前，对于消费者来说，这个消息是不可见的。</li>
+<li>其次，半消息发送成功后，就可以执行本地事务了，提交订单库的数据库事务。然后根据本地事务的执行结果决定提交或者回滚事务消息。如果订单创建成功，那就提交事务消息，购物车系统就可以消费到这条消息继续后续的流程。如果订单创建失败，那就回滚事务消息，购物车系统就不会收到这条消息。这样就基本实现了“要么都成功，要么都失败”的一致性要求。</li>
+<li><p>如果在第四步提交事务消息时失败了怎么办？对于这个问题，Kafka 和 RocketMQ 给出了 2 种不同的解决方案。</p>
+</li>
+<li><blockquote>
+<p>Kafka 的解决方案比较简单粗暴，直接抛出异常，让用户自行处理。我们可以在业务代码中反复重试提交，直到提交成功，或者删除之前创建的订单进行补偿。</p>
+</blockquote>
+</li>
+<li><blockquote>
+<p>RocketMQ 中的事务实现中，增加了事务反查的机制来解决事务消息提交失败的问题。如果 Producer 也就是订单系统，在提交或者回滚事务消息时发生网络异常，RocketMQ 的 Broker 没有收到提交或者回滚的请求，Broker 会定期去 Producer 上反查这个事务对应的本地事务的状态，然后根据反查结果决定提交或者回滚这个事务。</p>
+</blockquote>
+</li>
+</ul>
+<p><img src="https://github.com/gamesdoa/img0/raw/master/mq/rocketmq-tr.jpg" alt="消息队列事务"></p>
+<h2 id="如何确保消息不会丢失"><a href="#如何确保消息不会丢失" class="headerlink" title="如何确保消息不会丢失?"></a>如何确保消息不会丢失?</h2><p>现在主流的消息队列产品都提供了非常完善的消息可靠性保证机制，完全可以做到在消息传递过程中，即使发生网络中断或者硬件故障，也能确保消息的可靠传递，不丢消息。</p>
+<ul>
+<li><p>检测消息丢失的方法</p>
+<blockquote>
+<ul>
+<li>如果是 IT 基础设施比较完善的公司，一般都有分布式链路追踪系统，使用类似的追踪系统可以很方便地追踪每一条消息。</li>
+<li>可以利用消息队列的有序性来验证是否有消息丢失。在 Producer 端，给每个发出的消息附加一个连续递增的序号，然后在 Consumer 端来检查这个序号的连续性。如果没有消息丢失，Consumer 收到消息的序号必然是连续递增的</li>
+<li>大多数消息队列的客户端都支持拦截器机制，可以利用这个拦截器机制，在 Producer 发送消息之前的拦截器中将序号注入到消息中，在 Consumer 收到消息的拦截器中检测序号的连续性，这样实现的好处是消息检测的代码不会侵入到你的业务代码中，待你的系统稳定后，也方便将这部分检测的逻辑关闭或者删除。</li>
+</ul>
+</blockquote>
+</li>
+<li><p>在一个分布式系统中实现这个检测方法，有几个问题需要注意:</p>
+<blockquote>
+<ul>
+<li>首先，像 Kafka 和 RocketMQ 这样的消息队列，它是不保证在 Topic 上的严格顺序的，只能保证分区上的消息是有序的，所以我们在发消息的时候必须要指定分区，并且，在每个分区单独检测消息序号的连续性。</li>
+<li>如果你的系统中 Producer 是多实例的，由于并不好协调多个 Producer 之间的发送顺序，所以也需要每个 Producer 分别生成各自的消息序号，并且需要附加上 Producer 的标识，在 Consumer 端按照每个 Producer 分别来检测序号的连续性。</li>
+<li>Consumer 实例的数量最好和分区数量一致，做到 Consumer 和分区一一对应，这样会比较方便地在 Consumer 内检测消息序号的连续性。</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+<ul>
+<li><p>确保消息可靠传递</p>
+<blockquote>
+<p>一条消息从生产到消费完成这个过程，可以划分三个阶段。</p>
+<ul>
+<li>生产阶段: 从消息在 Producer 创建出来，经过网络传输发送到 Broker 端。</li>
+<li>存储阶段: 消息在 Broker 端存储，如果是集群，消息会在这个阶段被复制到其他的副本上。</li>
+<li>消费阶段: Consumer 从 Broker 上拉取消息，经过网络传输发送到 Consumer 上。</li>
+</ul>
+</blockquote>
+<ul>
+<li><p><strong>生产阶段</strong></p>
+<blockquote>
+<p>在生产阶段，消息队列通过最常用的请求确认机制，来保证消息的可靠传递：当你的代码调用发消息方法时，消息队列的客户端会把消息发送到 Broker，Broker 收到消息后，会给客户端返回一个确认响应，表明消息已经收到了。只要 Producer 收到了 Broker 的确认响应，就可以保证消息在生产阶段不会丢失。有些消息队列在长时间没收到发送确认响应后，会自动重试，如果重试再失败，就会以返回值或者异常的方式告知用户。在编写发送消息代码时，需要注意，正确处理返回值或者捕获异常，就可以保证这个阶段的消息不会丢失。</p>
+<p>以 Kafka 为例，看一下如何可靠地发送消息：</p>
+<ul>
+<li><p>同步发送时，只要注意捕获异常即可。</p>
+<pre><code>try {
+    RecordMetadata metadata = producer.send(record).get();
+    System.out.println(&quot;消息发送成功。&quot;);
+} catch (Throwable e) {
+    System.out.println(&quot;消息发送失败！&quot;);
+    System.out.println(e);
+}
+</code></pre></li>
+<li><p>异步发送时，则需要在回调方法里进行检查。这个地方是需要特别注意的，很多丢消息的原因就是，我们使用了异步发送，却没有在回调中检查发送结果。</p>
+<pre><code>producer.send(record, (metadata, exception) -&gt; {
+    if (metadata != null) {
+        System.out.println(&quot;消息发送成功。&quot;);
+    } else {
+        System.out.println(&quot;消息发送失败！&quot;);
+        System.out.println(exception);
+    }
+});
+</code></pre></li>
+</ul>
+</blockquote>
+</li>
+<li><p><strong>存储阶段</strong></p>
+<blockquote>
+<p>在存储阶段正常情况下，只要 Broker 在正常运行，就不会出现丢失消息的问题，但是如果 Broker 出现了故障，比如进程死掉了或者服务器宕机了，还是可能会丢失消息的。如果对消息的可靠性要求非常高，可以通过配置 Broker 参数来避免因为宕机丢消息。</p>
+<p>对于单个节点的 Broker，需要配置 Broker 参数，在收到消息后，将消息写入磁盘后再给 Producer 返回确认响应，这样即使发生宕机，由于消息已经被写入磁盘，就不会丢失消息，恢复后还可以继续消费。</p>
+<ul>
+<li>例如，在 RocketMQ 中，需要将刷盘方式 flushDiskType 配置为 SYNC_FLUSH 同步刷盘。</li>
+<li>如果是 Broker 是由多个节点组成的集群，需要将 Broker 集群配置成：至少将消息发送到 2 个以上的节点，再给客户端回复发送确认响应。这样当某个 Broker 宕机时，其他的 Broker 可以替代宕机的 Broker，也不会发生消息丢失。</li>
+</ul>
+</blockquote>
+</li>
+<li><p><strong>消费阶段</strong></p>
+<blockquote>
+<p>消费阶段采用和生产阶段类似的确认机制来保证消息的可靠传递，客户端从 Broker 拉取消息后，执行用户的消费业务逻辑，成功后，才会给 Broker 发送消费确认响应。如果 Broker 没有收到消费确认响应，下次拉消息的时候还会返回同一条消息，确保消息不会在网络传输过程中丢失，也不会因为客户端在执行消费逻辑中出错导致丢失。</p>
+<p>编写消费代码时需要注意的是，不要在收到消息后就立即发送消费确认，而是应该在执行完所有消费业务逻辑之后，再发送消费确认。</p>
+<p>以用 Python 语言消费 RabbitMQ 消息为例，来看一下如何实现一段可靠的消费代码：</p>
+<pre><code>def callback(ch, method, properties, body):
+    print(&quot; [x] 收到消息 %r&quot; % body)
+    # 在这儿处理收到的消息
+    database.save(body)
+    print(&quot; [x] 消费完成&quot;)
+    # 完成消费业务逻辑后发送消费确认响应
+    ch.basic_ack(delivery_tag = method.delivery_tag)
+channel.basic_consume(queue=&apos;hello&apos;, on_message_callback=callback)
+</code></pre><p>可以看到，在消费的回调方法 callback 中，正确的顺序是，先是把消息保存到数据库中，然后再发送消费确认响应。这样如果保存消息到数据库失败了，就不会执行消费确认的代码，下次拉到的还是这条消息，直到消费成功。</p>
+</blockquote>
+</li>
+</ul>
+</li>
+</ul>
+]]></content>
+    
+    <summary type="html">
+    
+      分布式系统中常用的消息中间件，如何选？如何用？怎么用的好？其原理又是怎么样的？
+    
+    </summary>
+    
+      <category term="分布式" scheme="http://gamesdoa.com/categories/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
+    
+    
+      <category term="MQ" scheme="http://gamesdoa.com/tags/MQ/"/>
+    
+      <category term="消息队列" scheme="http://gamesdoa.com/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
+    
+  </entry>
   
   <entry>
     <title>SpringBoot 使用 jasypt 3.0 配置文件敏感信息加密</title>
@@ -4785,6 +5079,29 @@ Log checkpoint at   0 11056147
   </entry>
   
   <entry>
+    <title>hexo 随笔</title>
+    <link href="http://gamesdoa.com/hexo.html"/>
+    <id>http://gamesdoa.com/hexo.html</id>
+    <published>2017-04-30T16:00:00.000Z</published>
+    <updated>2017-08-22T04:30:26.435Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="本地预览hexo创建的blog"><a href="#本地预览hexo创建的blog" class="headerlink" title="本地预览hexo创建的blog"></a>本地预览hexo创建的blog</h2><pre><code>hexo s
+是简写：hexo server
+</code></pre><h2 id="发布本地文件到github库"><a href="#发布本地文件到github库" class="headerlink" title="发布本地文件到github库"></a>发布本地文件到github库</h2><pre><code>hexo clean  //清理
+hexo g         //重新构建    
+hexo d        //发布
+</code></pre>]]></content>
+    
+    <summary type="html">
+    
+      hexo常用命令
+    
+    </summary>
+    
+    
+  </entry>
+  
+  <entry>
     <title>hexo的next主题优化定制</title>
     <link href="http://gamesdoa.com/hexo-next-tailor-made.html"/>
     <id>http://gamesdoa.com/hexo-next-tailor-made.html</id>
@@ -4841,29 +5158,6 @@ social_icons:
       <category term="hexo" scheme="http://gamesdoa.com/tags/hexo/"/>
     
       <category term="next" scheme="http://gamesdoa.com/tags/next/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>hexo 随笔</title>
-    <link href="http://gamesdoa.com/hexo.html"/>
-    <id>http://gamesdoa.com/hexo.html</id>
-    <published>2017-04-30T16:00:00.000Z</published>
-    <updated>2017-08-22T04:30:26.435Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="本地预览hexo创建的blog"><a href="#本地预览hexo创建的blog" class="headerlink" title="本地预览hexo创建的blog"></a>本地预览hexo创建的blog</h2><pre><code>hexo s
-是简写：hexo server
-</code></pre><h2 id="发布本地文件到github库"><a href="#发布本地文件到github库" class="headerlink" title="发布本地文件到github库"></a>发布本地文件到github库</h2><pre><code>hexo clean  //清理
-hexo g         //重新构建    
-hexo d        //发布
-</code></pre>]]></content>
-    
-    <summary type="html">
-    
-      hexo常用命令
-    
-    </summary>
-    
     
   </entry>
   
